@@ -1,0 +1,24 @@
+@layer theme, base, components, utilities;
+/* Tailwind without preflight: the app's own base styles in styles.css stay in charge */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* shadcn token names mapped onto the ProjectOne palette in styles.css */
+@theme inline {
+  --color-background: var(--ground);
+  --color-foreground: var(--ink);
+  --color-card: var(--sheet);
+  --color-card-foreground: var(--ink);
+  --color-muted: var(--hover);
+  --color-muted-foreground: var(--mut);
+  --color-accent: var(--active);
+  --color-border: var(--line);
+  --color-primary: var(--data);
+  --color-primary-foreground: var(--on-data);
+  --color-ring: var(--data);
+  --font-sans: var(--text);
+  --font-display: var(--display);
+}

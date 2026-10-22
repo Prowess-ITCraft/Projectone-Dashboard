@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Design tooling output (screenshots and reports from taste-skill)
+.taste-skill/
+
+# Per-developer local settings and caches
+# .claude/skills only links to .agents/skills; `npx skills` recreates it from skills-lock.json
+.claude/skills/
+.claude/settings.local.json
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
