@@ -32,8 +32,8 @@ function BrandHeader({ logo, product, onHome }: { logo: string; product: string;
       aria-label={`${product} home`}
       className="mb-4 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors select-none hover:bg-black/5 dark:hover:bg-white/5"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-white ring-1 ring-black/5 dark:ring-white/10">
-        <img src={logo} alt="" className="h-full w-full scale-[1.45] object-cover object-[50%_32%]" />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center">
+        <img src={logo} alt="" className="h-full w-full object-contain" />
       </span>
       <span className="font-display truncate py-0.5 text-[17px] leading-[1.3] font-bold tracking-[-0.01em] text-foreground">{product}</span>
     </button>

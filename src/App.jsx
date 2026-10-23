@@ -8,7 +8,7 @@ import {
 import { SidebarNav, CommandSearch } from '@/components/ui/dashboard-sidebar';
 import { useStore } from './store.jsx';
 import { ITEMS, QUESTIONNAIRES } from './data.js';
-import logo from './assets/projectone-logo.jpeg';
+import logo from './assets/projectone-logo.png';
 import Dashboard from './pages/Dashboard.jsx';
 import Components from './pages/Components.jsx';
 import Detail from './pages/Detail.jsx';
