@@ -35,7 +35,7 @@ function BrandHeader({ logo, product, onHome }: { logo: string; product: string;
       <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-white ring-1 ring-black/5 dark:ring-white/10">
         <img src={logo} alt="" className="h-full w-full scale-[1.45] object-cover object-[50%_32%]" />
       </span>
-      <span className="font-display truncate text-[17px] leading-none font-bold tracking-[-0.01em] text-foreground">{product}</span>
+      <span className="font-display truncate py-0.5 text-[17px] leading-[1.3] font-bold tracking-[-0.01em] text-foreground">{product}</span>
     </button>
   );
 }
@@ -62,7 +62,7 @@ function NavItem({
         className={cn(
           'group flex w-full items-center justify-between rounded-[7px] py-[7px] pr-2.5 text-left transition-all duration-200 select-none',
           isActive
-            ? 'bg-accent font-medium text-foreground'
+            ? 'nav-active font-medium'
             : childActive
               ? 'text-foreground hover:bg-black/5 dark:hover:bg-white/5'
               : 'text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/5',
@@ -72,7 +72,7 @@ function NavItem({
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <item.icon
-            className={cn('h-[17px] w-[17px] shrink-0 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')}
+            className={cn('h-[17px] w-[17px] shrink-0 transition-colors', isActive ? '' : 'text-muted-foreground group-hover:text-foreground')}
             weight={isActive ? 'fill' : 'regular'}
           />
           <span className="truncate text-[13.5px]">{item.title}</span>

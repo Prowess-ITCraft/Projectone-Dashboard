@@ -40,6 +40,11 @@ export default function Dashboard() {
         <Link to="/components" className="btn">Open components</Link>
       </PageHead>
 
+      <motion.section className="card topo-card" variants={rise} initial="hidden" animate="show">
+        <header className="card-h"><h3>Network topology</h3><span className="hint">Select a node to open its checklist</span></header>
+        <Topology progress={progress} />
+      </motion.section>
+
       <motion.div className="kpis" variants={stagger} initial="hidden" animate="show">
         {kpis.map((k) => (
           <motion.div key={k.l} className="kpi" variants={rise}>
@@ -50,27 +55,25 @@ export default function Dashboard() {
         ))}
       </motion.div>
 
-      <motion.div className="row r-21" variants={stagger} initial="hidden" animate="show">
-        <motion.section className="card" variants={rise}>
-          <header className="card-h"><h3>Network topology</h3><span className="hint">Select a node to open its checklist</span></header>
-          <Topology progress={progress} />
-        </motion.section>
-        <motion.section className="card" variants={rise}>
-          <header className="card-h"><h3>Task status</h3></header>
-          <div className="big-fig num"><CountUp to={t.pct} suffix="%" /><small>complete</small></div>
-          <Stacked parts={[
-            { label: 'Done', value: t.done, color: TONE.done },
-            { label: 'In progress', value: t.prog, color: TONE.active },
-            { label: 'Pending', value: t.pending, color: TONE.pending },
-          ]} />
-          <ul className="legend">
-            <li><i style={{ background: TONE.done }} />Done<b className="num">{t.done}</b></li>
-            <li><i style={{ background: TONE.active }} />In progress<b className="num">{t.prog}</b></li>
-            <li><i style={{ background: TONE.pending }} />Pending<b className="num">{t.pending}</b></li>
-          </ul>
+      <motion.section className="card status-card" variants={rise} initial="hidden" animate="show">
+        <header className="card-h"><h3>Task status</h3></header>
+        <div className="status-grid">
+          <div>
+            <div className="big-fig num"><CountUp to={t.pct} suffix="%" /><small>complete</small></div>
+            <Stacked parts={[
+              { label: 'Done', value: t.done, color: TONE.done },
+              { label: 'In progress', value: t.prog, color: TONE.active },
+              { label: 'Pending', value: t.pending, color: TONE.pending },
+            ]} />
+            <ul className="legend">
+              <li><i style={{ background: TONE.done }} />Done<b className="num">{t.done}</b></li>
+              <li><i style={{ background: TONE.active }} />In progress<b className="num">{t.prog}</b></li>
+              <li><i style={{ background: TONE.pending }} />Pending<b className="num">{t.pending}</b></li>
+            </ul>
+          </div>
           <BarList rows={phases} />
-        </motion.section>
-      </motion.div>
+        </div>
+      </motion.section>
 
       <motion.div className="row r-3" variants={stagger} initial="hidden" animate="show">
         <motion.section className="card" variants={rise}>

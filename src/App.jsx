@@ -3,7 +3,7 @@ import { Route, Routes, Navigate, useLocation, useNavigate, useParams } from 're
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   MagnifyingGlass, SquaresFour, ListChecks, GridFour, HardDrives, Wall, TreeStructure, Network, Database, Stack,
-  WifiHigh, Rows, Moon, Sun, ArrowCounterClockwise, SidebarSimple, Package,
+  WifiHigh, Moon, Sun, ArrowCounterClockwise, SidebarSimple, Package,
 } from '@phosphor-icons/react';
 import { SidebarNav, CommandSearch } from '@/components/ui/dashboard-sidebar';
 import { useStore } from './store.jsx';
@@ -23,10 +23,7 @@ function QRoute() {
 
 // nav ids are the routes themselves, so selecting an item is just navigating to it
 function activeFor(path) {
-  if (path.startsWith('/c/')) {
-    const id = path.split('/')[2];
-    return INFRA_ICONS[id] ? `/c/${id}` : '/components';
-  }
+  if (path.startsWith('/c/')) return '/components';
   return path;
 }
 
@@ -42,7 +39,7 @@ export default function App() {
   const loc = useLocation();
   const nav = useNavigate();
   const { reset } = useStore();
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light');
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
   const [sideOpen, setSideOpen] = useState(() => window.innerWidth > 860);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -63,21 +60,16 @@ export default function App() {
   const groups = [
     {
       items: [
-        { id: 'search', title: 'Search', icon: MagnifyingGlass, shortcut: 'Ctrl K' },
         { id: '/dashboard', title: 'Dashboard', icon: SquaresFour },
       ],
     },
     {
-      heading: 'Audit',
       items: [
         { id: 'questionnaire', title: 'Questionnaire', icon: ListChecks, children: [
           { id: '/q/server', title: 'Server', icon: HardDrives },
           { id: '/q/firewall', title: 'Firewall', icon: Wall },
         ] },
-        { id: 'components', title: 'Components', icon: GridFour, children: [
-          { id: '/components', title: 'All components', icon: Rows },
-          ...ITEMS.filter((i) => i.grp === 'infra').map((i) => ({ id: `/c/${i.id}`, title: i.name, icon: INFRA_ICONS[i.id] })),
-        ] },
+        { id: '/components', title: 'Components', icon: GridFour },
       ],
     },
   ];
@@ -98,7 +90,6 @@ export default function App() {
   ], []);
 
   const onSelect = (id) => {
-    if (id === 'search') return setSearchOpen(true);
     if (id === 'theme') return setTheme(dark ? 'light' : 'dark');
     if (id === 'reset') return window.confirm('Clear all checklist progress and questionnaire responses?') && reset();
     nav(id);
@@ -109,6 +100,7 @@ export default function App() {
     <div className={`shell ${sideOpen ? '' : 'collapsed'}`}>
       <aside className="side" aria-hidden={!sideOpen}>
         <SidebarNav
+          className="side-panel w-full"
           groups={groups}
           bottomItems={bottomItems}
           activeId={activeFor(loc.pathname)}
