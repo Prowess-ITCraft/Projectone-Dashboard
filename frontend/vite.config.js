@@ -7,4 +7,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: './',
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  server: { port: 9555, strictPort: true },
+  preview: { port: 9555, strictPort: true },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
+    css: false,
+  },
 });

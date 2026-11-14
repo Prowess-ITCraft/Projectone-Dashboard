@@ -2,8 +2,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { Route, Routes, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  MagnifyingGlass, SquaresFour, ListChecks, GridFour, HardDrives, Wall, TreeStructure, Network, Database, Stack,
-  WifiHigh, Moon, Sun, ArrowCounterClockwise, SidebarSimple, Package,
+  MagnifyingGlass,
+  SquaresFour,
+  ListChecks,
+  GridFour,
+  HardDrives,
+  Wall,
+  TreeStructure,
+  Network,
+  Database,
+  Stack,
+  WifiHigh,
+  Moon,
+  Sun,
+  ArrowCounterClockwise,
+  SidebarSimple,
+  Package,
 } from '@phosphor-icons/react';
 import { SidebarNav, CommandSearch } from '@/components/ui/dashboard-sidebar';
 import { useStore } from './store.jsx';
@@ -45,12 +59,19 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem('projectone.theme', theme); } catch {}
+    try {
+      localStorage.setItem('projectone.theme', theme);
+    } catch {
+      // storage can be blocked (private mode); the theme still applies for this visit
+    }
   }, [theme]);
 
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen((o) => !o); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -59,35 +80,52 @@ export default function App() {
   const dark = theme === 'dark';
   const groups = [
     {
-      items: [
-        { id: '/dashboard', title: 'Dashboard', icon: SquaresFour },
-      ],
+      items: [{ id: '/dashboard', title: 'Dashboard', icon: SquaresFour }],
     },
     {
       items: [
-        { id: 'questionnaire', title: 'Questionnaire', icon: ListChecks, children: [
-          { id: '/q/server', title: 'Server', icon: HardDrives },
-          { id: '/q/firewall', title: 'Firewall', icon: Wall },
-        ] },
+        {
+          id: 'questionnaire',
+          title: 'Questionnaire',
+          icon: ListChecks,
+          children: [
+            { id: '/q/server', title: 'Server', icon: HardDrives },
+            { id: '/q/firewall', title: 'Firewall', icon: Wall },
+          ],
+        },
         { id: '/components', title: 'Components', icon: GridFour },
       ],
     },
   ];
   const bottomItems = [
     {
-      id: 'theme', title: dark ? 'Dark theme' : 'Light theme', icon: dark ? Moon : Sun,
-      trailing: <span className={`theme-switch ${dark ? 'on' : ''}`} aria-hidden="true"><i /></span>,
+      id: 'theme',
+      title: dark ? 'Dark theme' : 'Light theme',
+      icon: dark ? Moon : Sun,
+      trailing: (
+        <span className={`theme-switch ${dark ? 'on' : ''}`} aria-hidden="true">
+          <i />
+        </span>
+      ),
     },
     { id: 'reset', title: 'Reset all data', icon: ArrowCounterClockwise },
   ];
 
-  const entries = useMemo(() => [
-    { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFour },
-    { id: '/components', title: 'All components', hint: 'List', icon: GridFour },
-    { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrives },
-    { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: Wall },
-    ...ITEMS.map((i) => ({ id: `/c/${i.id}`, title: i.name, hint: i.grp === 'infra' ? 'Network component' : 'Product', icon: INFRA_ICONS[i.id] || Package })),
-  ], []);
+  const entries = useMemo(
+    () => [
+      { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFour },
+      { id: '/components', title: 'All components', hint: 'List', icon: GridFour },
+      { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrives },
+      { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: Wall },
+      ...ITEMS.map((i) => ({
+        id: `/c/${i.id}`,
+        title: i.name,
+        hint: i.grp === 'infra' ? 'Network component' : 'Product',
+        icon: INFRA_ICONS[i.id] || Package,
+      })),
+    ],
+    [],
+  );
 
   const onSelect = (id) => {
     if (id === 'theme') return setTheme(dark ? 'light' : 'dark');
@@ -116,15 +154,27 @@ export default function App() {
           <button className="icon-btn" onClick={() => setSideOpen(!sideOpen)} aria-label={sideOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
             <SidebarSimple size={18} />
           </button>
-          <div className="crumbs"><span>ProjectOne</span><span aria-hidden="true">/</span><b>{titleFor(loc.pathname)}</b></div>
+          <div className="crumbs">
+            <span>ProjectOne</span>
+            <span aria-hidden="true">/</span>
+            <b>{titleFor(loc.pathname)}</b>
+          </div>
           <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-            <MagnifyingGlass size={15} /><span>Search</span><kbd>Ctrl K</kbd>
+            <MagnifyingGlass size={15} />
+            <span>Search</span>
+            <kbd>Ctrl K</kbd>
           </button>
         </header>
 
         <div className="canvas">
           <AnimatePresence mode="wait">
-            <motion.div key={loc.pathname} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <motion.div
+              key={loc.pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
               <Routes location={loc}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/components" element={<Components />} />

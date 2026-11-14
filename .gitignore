@@ -1,8 +1,9 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build and test output
 dist/
+coverage/
 *.tsbuildinfo
 
 # Vite
@@ -35,3 +36,7 @@ desktop.ini
 !.vscode/extensions.json
 .idea/
 *.swp
+
+# Private context pack and customer sample documents (kept local; engineering docs live in frontend/docs)
+/docs
+/samples

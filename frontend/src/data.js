@@ -1,7 +1,6 @@
 /* ProjectOne – static data: components, task templates, questionnaires.
    Tasks flagged `true` as 3rd element are DEMO steps (not from the project plan file). */
 
-
 /* Generic DEMO templates for components that have no steps in the project plan */
 const demoTasks = (name) => ({
   new: [
@@ -138,28 +137,152 @@ const PLAN = {
 /* Network components + products. src: 'plan' = steps from project file, 'mixed' = plan + demo, 'demo' = all demo */
 const ITEMS = [
   // Network components
-  { id: 'firewall', grp: 'infra', name: 'Firewall', cat: 'Network', icon: 'Wall', q: 'firewall', src: 'mixed', desc: 'Perimeter security, web filtering and bandwidth policy per user.' },
-  { id: 'server', grp: 'infra', name: 'Server', cat: 'Identity & Access', icon: 'HardDrives', q: 'server', src: 'plan', desc: 'Dell R740 – Windows Server, VMs and Active Directory.' },
-  { id: 'switch', grp: 'infra', name: 'Switch', cat: 'Network', icon: 'TreeStructure', src: 'plan', desc: 'Cisco Catalyst C1300-24T-4G managed switching.' },
-  { id: 'router', grp: 'infra', name: 'Router', cat: 'Network', icon: 'Network', src: 'demo', desc: 'WAN edge routing and failover links.' },
+  {
+    id: 'firewall',
+    grp: 'infra',
+    name: 'Firewall',
+    cat: 'Network',
+    icon: 'Wall',
+    q: 'firewall',
+    src: 'mixed',
+    desc: 'Perimeter security, web filtering and bandwidth policy per user.',
+  },
+  {
+    id: 'server',
+    grp: 'infra',
+    name: 'Server',
+    cat: 'Identity & Access',
+    icon: 'HardDrives',
+    q: 'server',
+    src: 'plan',
+    desc: 'Dell R740 – Windows Server, VMs and Active Directory.',
+  },
+  {
+    id: 'switch',
+    grp: 'infra',
+    name: 'Switch',
+    cat: 'Network',
+    icon: 'TreeStructure',
+    src: 'plan',
+    desc: 'Cisco Catalyst C1300-24T-4G managed switching.',
+  },
+  {
+    id: 'router',
+    grp: 'infra',
+    name: 'Router',
+    cat: 'Network',
+    icon: 'Network',
+    src: 'demo',
+    desc: 'WAN edge routing and failover links.',
+  },
   { id: 'nas', grp: 'infra', name: 'NAS', cat: 'Resilience', icon: 'Database', src: 'plan', desc: 'QNAP auto data backup storage.' },
-  { id: 'san', grp: 'infra', name: 'SAN', cat: 'Resilience', icon: 'Stack', src: 'demo', desc: 'Block storage fabric for virtual workloads.' },
-  { id: 'ap', grp: 'infra', name: 'Access Point', cat: 'Network', icon: 'WifiHigh', src: 'demo', desc: 'Wi-Fi coverage, SSIDs and guest isolation.' },
+  {
+    id: 'san',
+    grp: 'infra',
+    name: 'SAN',
+    cat: 'Resilience',
+    icon: 'Stack',
+    src: 'demo',
+    desc: 'Block storage fabric for virtual workloads.',
+  },
+  {
+    id: 'ap',
+    grp: 'infra',
+    name: 'Access Point',
+    cat: 'Network',
+    icon: 'WifiHigh',
+    src: 'demo',
+    desc: 'Wi-Fi coverage, SSIDs and guest isolation.',
+  },
   // Products without their own network-component page
-  { id: 'cdr', grp: 'prod', name: 'Sanitisation (CDR)', cat: 'Data', icon: 'FileMagnifyingGlass', src: 'demo', desc: 'Content Disarm & Reconstruction for inbound files.' },
-  { id: 'eps', grp: 'prod', name: 'EPS with XDR', cat: 'Endpoint', icon: 'ShieldCheck', src: 'plan', desc: 'SentinelOne endpoint protection with XDR.' },
-  { id: 'atp', grp: 'prod', name: 'ATP', cat: 'Endpoint', icon: 'Broadcast', src: 'demo', desc: 'Advanced threat protection and sandboxing.' },
-  { id: 'spe', grp: 'prod', name: 'Security Posture Enhancement', cat: 'Endpoint', icon: 'ChartLineUp', src: 'demo', desc: 'Continuous posture scoring and remediation.' },
+  {
+    id: 'cdr',
+    grp: 'prod',
+    name: 'Sanitisation (CDR)',
+    cat: 'Data',
+    icon: 'FileMagnifyingGlass',
+    src: 'demo',
+    desc: 'Content Disarm & Reconstruction for inbound files.',
+  },
+  {
+    id: 'eps',
+    grp: 'prod',
+    name: 'EPS with XDR',
+    cat: 'Endpoint',
+    icon: 'ShieldCheck',
+    src: 'plan',
+    desc: 'SentinelOne endpoint protection with XDR.',
+  },
+  {
+    id: 'atp',
+    grp: 'prod',
+    name: 'ATP',
+    cat: 'Endpoint',
+    icon: 'Broadcast',
+    src: 'demo',
+    desc: 'Advanced threat protection and sandboxing.',
+  },
+  {
+    id: 'spe',
+    grp: 'prod',
+    name: 'Security Posture Enhancement',
+    cat: 'Endpoint',
+    icon: 'ChartLineUp',
+    src: 'demo',
+    desc: 'Continuous posture scoring and remediation.',
+  },
   { id: 'dlp', grp: 'prod', name: 'DLP', cat: 'Data', icon: 'Eye', src: 'demo', desc: 'Data loss prevention across endpoints and mail.' },
-  { id: 'odr', grp: 'prod', name: 'Phoenix ODR', cat: 'Resilience', icon: 'CloudArrowUp', src: 'plan', desc: 'Acronis on-demand disaster recovery.' },
+  {
+    id: 'odr',
+    grp: 'prod',
+    name: 'Phoenix ODR',
+    cat: 'Resilience',
+    icon: 'CloudArrowUp',
+    src: 'plan',
+    desc: 'Acronis on-demand disaster recovery.',
+  },
   { id: 'ztna', grp: 'prod', name: 'ZTNA', cat: 'Identity & Access', icon: 'Globe', src: 'demo', desc: 'Zero-trust application access.' },
-  { id: 'ipam', grp: 'prod', name: 'IPAM (PAM)', cat: 'Identity & Access', icon: 'Key', src: 'demo', desc: 'IP address management and privileged access.' },
-  { id: 'mdm', grp: 'prod', name: 'MDM / BYOD', cat: 'Endpoint', icon: 'DeviceMobile', src: 'demo', desc: 'Mobile device management and BYOD policy.' },
+  {
+    id: 'ipam',
+    grp: 'prod',
+    name: 'IPAM (PAM)',
+    cat: 'Identity & Access',
+    icon: 'Key',
+    src: 'demo',
+    desc: 'IP address management and privileged access.',
+  },
+  {
+    id: 'mdm',
+    grp: 'prod',
+    name: 'MDM / BYOD',
+    cat: 'Endpoint',
+    icon: 'DeviceMobile',
+    src: 'demo',
+    desc: 'Mobile device management and BYOD policy.',
+  },
   { id: 'enc', grp: 'prod', name: 'Encryption', cat: 'Data', icon: 'Lock', src: 'demo', desc: 'Disk and removable-media encryption.' },
-  { id: 'inv', grp: 'prod', name: 'Inventory Management', cat: 'Endpoint', icon: 'Package', src: 'demo', desc: 'Hardware and software asset inventory.' },
-  { id: 'pwr', grp: 'prod', name: 'Power Savings Management', cat: 'Endpoint', icon: 'Power', src: 'demo', desc: 'Endpoint power policy and energy reporting.' },
+  {
+    id: 'inv',
+    grp: 'prod',
+    name: 'Inventory Management',
+    cat: 'Endpoint',
+    icon: 'Package',
+    src: 'demo',
+    desc: 'Hardware and software asset inventory.',
+  },
+  {
+    id: 'pwr',
+    grp: 'prod',
+    name: 'Power Savings Management',
+    cat: 'Endpoint',
+    icon: 'Power',
+    src: 'demo',
+    desc: 'Endpoint power policy and energy reporting.',
+  },
 ];
-ITEMS.forEach(it => { it.tasks = PLAN[it.id] || demoTasks(it.name); });
+ITEMS.forEach((it) => {
+  it.tasks = PLAN[it.id] || demoTasks(it.name);
+});
 
 /* The product list as supplied; some entries open an existing component page in a given mode */
 const PRODUCT_LIST = [
@@ -188,7 +311,7 @@ const QUESTIONNAIRES = {
     title: 'Firewall Policy Questionnaire',
     sub: 'One response per user – feeds the firewall look-up table.',
     cols: [
-      { k: 'user', l: 'User Name', t: 'text', q: 'What is the user\'s name?' },
+      { k: 'user', l: 'User Name', t: 'text', q: "What is the user's name?" },
       { k: 'dept', l: 'Department', t: 'text', q: 'Which department does the user belong to?' },
       { k: 'ip', l: 'IP Address', t: 'text', q: 'What IP address is assigned to the user?', ph: '192.168.1.10' },
       { k: 'internet', l: 'Allow Internet', t: 'yn', q: 'Should the user have Internet access?' },
@@ -210,12 +333,18 @@ const QUESTIONNAIRES = {
     title: 'Server Domain Questionnaire',
     sub: 'One response per user – feeds the Active Directory look-up table.',
     cols: [
-      { k: 'user', l: 'User Name', t: 'text', q: 'What is the user\'s name?' },
+      { k: 'user', l: 'User Name', t: 'text', q: "What is the user's name?" },
       { k: 'dept', l: 'Department', t: 'text', q: 'Which department does the user belong to?' },
       { k: 'office', l: 'Office Application', t: 'yn', q: 'Allow office applications?' },
       { k: 'other', l: 'Other Application', t: 'yn', q: 'Allow other applications?' },
       { k: 'usb', l: 'USB Block?', t: 'yn', q: 'Should USB ports be blocked?' },
-      { k: 'folders', l: 'Dept Folder Access', t: 'text', q: 'Which folders in the department can the user access?', ph: 'Accounts, Invoices' },
+      {
+        k: 'folders',
+        l: 'Dept Folder Access',
+        t: 'text',
+        q: 'Which folders in the department can the user access?',
+        ph: 'Accounts, Invoices',
+      },
       { k: 'edit', l: 'Allow Edit', t: 'yn', q: 'Allow edit?' },
       { k: 'ro', l: 'Read Only', t: 'yn', q: 'Read-only access?' },
       { k: 'drive', l: 'Map Drive', t: 'text', q: 'Which drive letter / share should be mapped?', ph: 'S: \\\\SRV\\Finance' },

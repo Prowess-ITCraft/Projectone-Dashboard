@@ -22,11 +22,15 @@ function Tile({ item, name, mode, desc }) {
         </div>
         <h4>{name}</h4>
         <p>{desc || item.desc}</p>
-        <div className="tile-bar"><i style={{ width: `${s.pct}%` }} /></div>
+        <div className="tile-bar">
+          <i style={{ width: `${s.pct}%` }} />
+        </div>
         <div className="tile-f">
           <span className={`badge ${cls}`}>{txt}</span>
           {mode && <span className="badge mode">{MODES[mode]}</span>}
-          <span className="tile-c">{s.done}/{s.total} tasks</span>
+          <span className="tile-c">
+            {s.done}/{s.total} tasks
+          </span>
         </div>
       </Link>
     </motion.div>
@@ -43,19 +47,30 @@ export default function Components() {
   return (
     <>
       <PageHead title="Components" sub="Open a component for its installation and configuration checklist.">
-        <label className="search"><Icon name="MagnifyingGlass" size={16} /><input placeholder="Search components" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search components" /></label>
+        <label className="search">
+          <Icon name="MagnifyingGlass" size={16} />
+          <input placeholder="Search components" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search components" />
+        </label>
       </PageHead>
 
-      <h2 className="sec">Network components <span className="num">{infra.length}</span></h2>
+      <h2 className="sec">
+        Network components <span className="num">{infra.length}</span>
+      </h2>
       <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={'i' + q}>
-        {infra.map((i) => <Tile key={i.id} item={i} name={i.name} />)}
+        {infra.map((i) => (
+          <Tile key={i.id} item={i} name={i.name} />
+        ))}
       </motion.div>
 
-      <h2 className="sec">Security and management products <span className="num">{prods.length}</span></h2>
+      <h2 className="sec">
+        Security and management products <span className="num">{prods.length}</span>
+      </h2>
       <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={'p' + q}>
-        {prods.map((p) => <Tile key={p.name} item={byId[p.id]} name={p.name} mode={p.mode} desc={byId[p.id].desc} />)}
+        {prods.map((p) => (
+          <Tile key={p.name} item={byId[p.id]} name={p.name} mode={p.mode} desc={byId[p.id].desc} />
+        ))}
       </motion.div>
-      {!infra.length && !prods.length && <p className="empty">No components match "{q}".</p>}
+      {!infra.length && !prods.length && <p className="empty">No components match &quot;{q}&quot;.</p>}
     </>
   );
 }

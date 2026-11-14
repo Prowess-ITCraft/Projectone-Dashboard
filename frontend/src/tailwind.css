@@ -1,8 +1,8 @@
 @layer theme, base, components, utilities;
 /* Tailwind without preflight: the app's own base styles in styles.css stay in charge */
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-@import "tw-animate-css";
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import 'tw-animate-css';
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
