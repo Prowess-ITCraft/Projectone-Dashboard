@@ -1,0 +1,238 @@
+/*
+  Design tokens. Every colour, font size, weight, spacing step, radius and shadow the app uses is named here;
+  the other stylesheets refer to these names only. Tailwind utilities reach the same values through the
+  @theme block in tailwind.css.
+
+  Breakpoints cannot be CSS variables inside media queries, so they are listed here and repeated where used:
+    --bp-wide   1200px  four-up rows become two-up
+    --bp-nav     860px  the sidebar becomes a drawer and the bottom bar appears (NAV_BREAKPOINT in src/app/navigation.js)
+    --bp-phone   480px  phone-only adjustments
+*/
+@layer base {
+  /* colour: daylight (default) */
+  :root,
+  :root[data-theme='light'] {
+    /* light grey ground, white cards, near-black ink, lime fills with an olive tone for text, grey for work in progress */
+    --ground: #e8e8e5;
+    --panel: #e8e8e5;
+    --sheet: #ffffff;
+    --ink: #161616;
+    --mut: #5a5a5a;
+    --faint: #616161;
+    --line: #e6e6e3;
+    --line-2: #d0d0cc;
+    --hover: #f3f3f1;
+    --active: #ededea;
+    --data: #5f8f00;
+    --data-mid: #a3a3a3;
+    --track: #ececea;
+    --on-data: #ffffff;
+    --tint: #f1f9dc;
+    --tint-bd: #c9e58a;
+    --ring: rgba(95, 143, 0, 0.25);
+    --pos: #13693d;
+    --neg: #b42318;
+    --warn: #8f5200;
+    --pos-bg: #e2f5ea;
+    --pos-bd: #b7e3c8;
+    --neg-bg: #fdebe8;
+    --warn-bg: #fdf1d8;
+    --warn-bd: #efd9a0;
+    --btn-bg: #c6f24e;
+    --btn-fg: #111111;
+    --btn-h: #d4ff5c;
+    --lime: #a8d82e;
+    --pill: #161616;
+    --pill-fg: #ffffff;
+    --scrim: rgba(22, 22, 22, 0.32);
+    --bg:
+      radial-gradient(520px 420px at 18% 10%, rgba(190, 240, 60, 0.42) 0%, transparent 70%),
+      radial-gradient(480px 420px at 90% 28%, rgba(45, 212, 191, 0.32) 0%, transparent 70%),
+      radial-gradient(560px 460px at 55% 88%, rgba(163, 230, 53, 0.32) 0%, transparent 70%),
+      radial-gradient(420px 360px at 6% 88%, rgba(110, 231, 183, 0.28) 0%, transparent 70%),
+      linear-gradient(160deg, #f3f3ee 0%, #e2e5da 100%);
+    --card: linear-gradient(160deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.48) 55%, rgba(255, 255, 255, 0.6) 100%);
+    --card-solid: #ffffff;
+    --glass-bd: rgba(255, 255, 255, 0.95);
+    --rim: inset 0 1px 0 #ffffff, inset 1px 0 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 26px -18px rgba(0, 0, 0, 0.25);
+    color-scheme: light;
+  }
+
+  /* colour: charcoal */
+  :root[data-theme='dark'] {
+    /* near-black striped cards on a charcoal ground, lime for done and active, grey for work in progress */
+    --ground: #2a2a2a;
+    --panel: #2a2a2a;
+    --sheet: #1b1b1b;
+    --ink: #f2f2f2;
+    --mut: #a6a6a6;
+    --faint: #909090;
+    --line: #2f2f2f;
+    --line-2: #3e3e3e;
+    --hover: #262626;
+    --active: #333333;
+    --data: #c6f24e;
+    --data-mid: #6e6e6e;
+    --track: #2e2e2e;
+    --on-data: #111111;
+    --tint: #2c3613;
+    --tint-bd: #5d7420;
+    --ring: rgba(198, 242, 78, 0.35);
+    --pos: #63e09c;
+    --neg: #ff8a7a;
+    --warn: #f2bd63;
+    --pos-bg: #0f2d22;
+    --pos-bd: #1d5a3c;
+    --neg-bg: #34161f;
+    --warn-bg: #33270f;
+    --warn-bd: #5e4818;
+    --btn-bg: #c6f24e;
+    --btn-fg: #111111;
+    --btn-h: #d4ff5c;
+    --lime: #c6f24e;
+    --pill: #f2f2f2;
+    --pill-fg: #111111;
+    --scrim: rgba(0, 0, 0, 0.5);
+    --bg:
+      radial-gradient(520px 420px at 18% 10%, rgba(198, 242, 78, 0.3) 0%, transparent 70%),
+      radial-gradient(480px 420px at 90% 28%, rgba(45, 212, 191, 0.22) 0%, transparent 70%),
+      radial-gradient(560px 460px at 55% 88%, rgba(163, 230, 53, 0.22) 0%, transparent 70%),
+      radial-gradient(420px 360px at 6% 88%, rgba(34, 197, 94, 0.2) 0%, transparent 70%), linear-gradient(160deg, #262626 0%, #141414 100%);
+    --card:
+      repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 10px),
+      linear-gradient(160deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.05) 100%),
+      rgba(20, 20, 20, 0.5);
+    --card-solid: #1b1b1b;
+    --glass-bd: rgba(255, 255, 255, 0.1);
+    --rim: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 1px 0 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+    --shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.7);
+    color-scheme: dark;
+  }
+
+  /* theme-independent tokens */
+  :root {
+    /* colour that does not change with the theme */
+    --on-lime: #111111;
+    --lime-grad: linear-gradient(135deg, #e2ff7a 0%, #c6f24e 45%, #98cf1c 100%);
+    --bar: linear-gradient(90deg, #98cf1c 0%, #c6f24e 60%, #e2ff7a 100%);
+    --glass-blur: blur(22px) saturate(160%);
+
+    /* type: families */
+    --display: 'Urbanist', 'Segoe UI Variable Display', system-ui, sans-serif;
+    --text: 'Urbanist', 'Segoe UI Variable Text', system-ui, sans-serif;
+
+    /* type: sizes, smallest to largest */
+    --fs-nano: 10.5px; /* keyboard hints in the sidebar and search */
+    --fs-micro: 11px; /* kbd */
+    --fs-tag: 11.5px; /* demo chip, question numbers */
+    --fs-caption: 12px; /* badges, small notes */
+    --fs-small: 12.5px; /* hints, table headers, status pills */
+    --fs-label: 13px; /* field labels, secondary text */
+    --fs-ui: 13.5px; /* buttons, navigation, breadcrumbs */
+    --fs-body: 14px;
+    --fs-lead: 15px; /* page subtitle */
+    --fs-tile: 16px; /* tile titles */
+    --fs-brand: 17px; /* product name in the sidebar */
+    --fs-title: 18px; /* card and section titles, ring figure */
+    --fs-stat-sm: 26px; /* detail counters */
+    --fs-stat: 28px; /* questionnaire summary */
+    --fs-h1: 32px;
+    --fs-kpi: 36px;
+    --fs-hero: 46px;
+
+    /* type: weights */
+    --fw-light: 300; /* large figures */
+    --fw-medium: 500;
+    --fw-semibold: 600;
+
+    /* type: line heights and tracking */
+    --lh-none: 1;
+    --lh-tight: 1.1;
+    --lh-snug: 1.2;
+    --lh-row: 1.4;
+    --lh-body: 1.5;
+    --tracking-figure: -0.02em;
+    --tracking-heading: -0.01em;
+    --tracking-title: -0.2px;
+
+    /* spacing: named by size in px; 1px, 3px, 5px, 7px, 9px and 11px insets inside small controls stay literal */
+    --space-2: 2px;
+    --space-4: 4px;
+    --space-6: 6px;
+    --space-8: 8px;
+    --space-10: 10px;
+    --space-12: 12px;
+    --space-14: 14px;
+    --space-16: 16px;
+    --space-18: 18px;
+    --space-20: 20px;
+    --space-22: 22px;
+    --space-24: 24px;
+    --space-26: 26px;
+    --space-30: 30px;
+    --space-34: 34px;
+    --space-36: 36px;
+    --space-40: 40px;
+    --space-48: 48px;
+    --space-72: 72px;
+
+    /* spacing: layout roles */
+    --gutter: var(--space-16); /* gap between cards and rows */
+    --card-pad-y: var(--space-24);
+    --card-pad-x: var(--space-26);
+    --tile-pad-y: var(--space-18);
+    --tile-pad-x: var(--space-20);
+    --shell-inset: var(--space-8); /* the page panel's margin from the window edge */
+
+    /* radii */
+    --rad-2xs: 3px;
+    --rad-3xs: 4px;
+    --rad-xs: 5px;
+    --rad-sm: 6px;
+    --rad-md: 7px;
+    --rad-xl: 10px;
+    --rad-sheet: 16px;
+    --rad-card: 26px;
+    --rad-full: 999px;
+
+    /* shadows beyond the per-theme --rim and --shadow */
+    --glow-tile: 0 14px 34px -16px rgba(198, 242, 78, 0.45);
+    --shadow-btn: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 22px -10px rgba(168, 216, 46, 0.8);
+    --shadow-pill: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+    --shadow-dialog: 0 24px 60px -24px rgba(0, 0, 0, 0.55);
+
+    /* sizes */
+    --sidebar-w: 260px;
+    --drawer-w: 268px;
+    --topbar-h: 58px;
+    --bottom-bar-h: 64px;
+    --canvas-max: 1480px;
+
+    /* motion */
+    --dur-fast: 0.15s;
+    --dur-base: 0.2s;
+    --dur-slow: 0.3s;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* stacking */
+    --z-sticky: 1;
+    --z-bar: 30;
+    --z-drawer: 40;
+    --z-dialog: 50;
+  }
+
+  /* no blur available, or the viewer asked for less transparency: cards fall back to solid */
+  @media (prefers-reduced-transparency: reduce) {
+    :root,
+    :root[data-theme] {
+      --card: var(--card-solid);
+    }
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root,
+    :root[data-theme] {
+      --card: var(--card-solid);
+    }
+  }
+}
