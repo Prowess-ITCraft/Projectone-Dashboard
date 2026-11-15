@@ -240,6 +240,21 @@
     color: var(--mut);
     border-color: var(--line-2);
   }
+  /* switch tones, matching the segmented switches: lime glass when on, quiet frosted glass when off */
+  .tone-on {
+    color: var(--on-lime);
+    background: var(--lime-grad);
+    border-color: transparent;
+    box-shadow: var(--shadow-seg-on);
+  }
+  .tone-off {
+    color: var(--mut);
+    background: var(--seg-track);
+    border-color: var(--glass-bd);
+    box-shadow: var(--rim);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
 
   /* form fields */
   .field-label {
@@ -334,13 +349,16 @@
     color: var(--mut);
   }
 
-  /* segmented control: the current choice is a solid pill */
+  /* segmented control: a frosted track; the current choice is a glass pill, lime when the choice means "on" */
   .seg {
     display: inline-flex;
-    background: var(--track);
-    border: 1px solid transparent;
+    background: var(--seg-track);
+    border: 1px solid var(--glass-bd);
     border-radius: var(--rad-full);
     padding: 3px;
+    box-shadow: var(--rim);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
   }
   .seg button {
     position: relative;
@@ -355,13 +373,27 @@
   .seg button.on {
     color: var(--pill-fg);
   }
+  .seg button.on.positive {
+    color: var(--on-lime);
+  }
   .seg-bg {
     position: absolute;
     inset: 0;
     border-radius: var(--rad-full);
-    background: var(--pill);
-    border: 1px solid transparent;
+    background: var(--seg-pill);
+    border: 1px solid var(--glass-bd);
+    box-shadow: var(--shadow-seg-off);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    transition:
+      background var(--dur-base),
+      box-shadow var(--dur-base);
     z-index: 0;
+  }
+  .seg-bg.positive {
+    background: var(--lime-grad);
+    border-color: transparent;
+    box-shadow: var(--shadow-seg-on);
   }
   .seg button span {
     position: relative;
