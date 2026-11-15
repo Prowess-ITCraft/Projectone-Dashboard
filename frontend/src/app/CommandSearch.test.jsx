@@ -36,6 +36,12 @@ describe('CommandSearch', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('cancels the Enter keypress so it cannot press the button focus returns to', () => {
+    setup();
+    const input = screen.getByPlaceholderText(/search components/i);
+    expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(false);
+  });
+
   it('starts with an empty query each time it opens', () => {
     const { rerender } = setup();
     fireEvent.change(screen.getByPlaceholderText(/search components/i), { target: { value: 'dash' } });

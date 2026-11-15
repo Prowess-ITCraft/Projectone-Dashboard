@@ -12,7 +12,7 @@ export function Dialog({ open, ...props }) {
   return open ? createPortal(<DialogPanel {...props} />, document.body) : null;
 }
 
-function DialogPanel({ title, description, actions, onClose, role = 'dialog', children }) {
+function DialogPanel({ title, description, actions, onClose, role = 'dialog', wide = false, children }) {
   const ref = useModal(onClose);
   const id = useId();
   return (
@@ -25,7 +25,7 @@ function DialogPanel({ title, description, actions, onClose, role = 'dialog', ch
         aria-labelledby={`${id}-title`}
         aria-describedby={description ? `${id}-desc` : undefined}
         tabIndex={-1}
-        className="dialog relative"
+        className={`dialog relative${wide ? ' wide' : ''}`}
       >
         <div className="dialog-h">
           <h2 id={`${id}-title`}>{title}</h2>

@@ -33,7 +33,11 @@ function SearchDialog({ onClose, entries, onPick }) {
     } else if (ev.key === 'ArrowUp') {
       ev.preventDefault();
       setSel((s) => Math.max(0, s - 1));
-    } else if (ev.key === 'Enter') pick(results[sel]);
+    } else if (ev.key === 'Enter') {
+      // closing hands focus back to the opener; without this the same keypress would then press that button too
+      ev.preventDefault();
+      pick(results[sel]);
+    }
   };
 
   return (

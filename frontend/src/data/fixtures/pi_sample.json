@@ -1,0 +1,155 @@
+{
+  "document_type": "pi",
+  "issuer": "ITCraft (Prowess IT Craft Pvt Ltd)",
+  "number": "ITCRAFT/NN/2627/002",
+  "date": "2026-05-20",
+  "quote_ref": "ITCraft/NN/2627/004",
+  "po_number": "Call Confirmation",
+  "po_date": "2026-05-20",
+  "customer": {
+    "name": "M/S Sample Industries",
+    "address": "Plot 12, Example Estate, Sample Village, Sample District, Maharashtra, 400001",
+    "gstin": "27AAAAA0000A1Z5",
+    "contact": "A. Contact"
+  },
+  "lines": [
+    {
+      "no": 1,
+      "kind": "product",
+      "module": "nas",
+      "title": "16TB Redundant QNAP Auto Data Backup Storage Solution",
+      "qty": 1,
+      "rate": 175893.0,
+      "amount": 175893.0
+    },
+    {
+      "no": 2,
+      "kind": "service",
+      "module": "nas",
+      "paired_to": 1,
+      "title": "QNAP Setup, Installation, Configuration, one time Data migration, porting and One year support charges",
+      "qty": 1,
+      "rate": 15000.0,
+      "amount": 15000.0,
+      "scope_items": [
+        "Server files/folders migration",
+        "Individual file/folder back up, schedule and security controls",
+        "Remote access configuration",
+        "Add, remove user files access",
+        "Secured access set up"
+      ]
+    },
+    {
+      "no": 3,
+      "kind": "subscription",
+      "module": "backup_software",
+      "title": "Acronis / Veeam Backup and Replication License Per Instance / Per year",
+      "qty": 1,
+      "rate": 21732.0,
+      "amount": 21732.0
+    },
+    {
+      "no": 4,
+      "kind": "service",
+      "module": "backup_software",
+      "paired_to": 3,
+      "title": "Acronis / Veeam Setup, Installation, Configuration, one time Data migration, porting and one year support charges",
+      "qty": 1,
+      "rate": 6000.0,
+      "amount": 6000.0
+    },
+    {
+      "no": 5,
+      "kind": "subscription",
+      "module": "cloud_backup",
+      "title": "Cloud back up One Drive for business (Plan 2)",
+      "qty": 1,
+      "rate": 16772.0,
+      "amount": 16772.0
+    },
+    {
+      "no": 6,
+      "kind": "service",
+      "module": "cloud_backup",
+      "paired_to": 5,
+      "title": "One Drive Setup, Installation, Configuration, one time Data migration, porting and one year support charges",
+      "qty": 1,
+      "rate": 2400.0,
+      "amount": 2400.0
+    },
+    {
+      "no": 7,
+      "kind": "product",
+      "module": "firewall",
+      "title": "Sophos XGS-88 With 3 years Xtreme Protection",
+      "qty": 1,
+      "rate": 49533.0,
+      "amount": 49533.0
+    },
+    {
+      "no": 8,
+      "kind": "service",
+      "module": "firewall",
+      "paired_to": 7,
+      "title": "Sophos One Time Setup Installation Configuration Charges",
+      "qty": 1,
+      "rate": 6000.0,
+      "amount": 6000.0,
+      "scope_items": [
+        "Network Firewall Configuration",
+        "SSL VPN Configuration for remote users",
+        "Multiple ISP Configuration and load balancing",
+        "Defining Content Filtering Policies",
+        "Unwanted sites blocking",
+        "Public Email domain blocking",
+        "Internet Bandwidth allocation for all users"
+      ]
+    },
+    {
+      "no": 9,
+      "kind": "service",
+      "module": "firewall",
+      "paired_to": 7,
+      "title": "Sophos One Year Support Charges for VPN Firewall",
+      "qty": 1,
+      "rate": 12000.0,
+      "amount": 12000.0,
+      "support_scope": true,
+      "scope_items": [
+        "Add / Delete / Validate Accounts",
+        "Redefining controls for existing users",
+        "Regular monitoring for failures, assessment and support",
+        "Firmware patching for the Firewall",
+        "SSL VPN Accounts management",
+        "Monthly cumulative VPN Firewall reporting",
+        "Regular verification validation of accounts",
+        "Onsite/Remote Management: Breakdown Calls"
+      ]
+    },
+    {
+      "no": 10,
+      "kind": "subscription",
+      "module": "hosted_dr",
+      "title": "Yearly charges for PhoenyxODR through hosted VM Server with 3TB hosted live backup storage",
+      "qty": 1,
+      "rate": 45366.0,
+      "amount": 45366.0
+    }
+  ],
+  "totals": {
+    "subtotal": 350696.0,
+    "gst_18": 63125.28,
+    "round_off": -0.28,
+    "grand_total": 413821.0
+  },
+  "terms": [
+    "GST 18% extra",
+    "Delivery 1-2 weeks from confirmed PO with advance",
+    "100% advance with confirmed PO",
+    "Warranty per manufacturer",
+    "Delivery charges extra outside Mumbai",
+    "Order cannot be cancelled",
+    "Prices valid 5 days"
+  ],
+  "note": "Anonymised sample. Bank details are never stored."
+}

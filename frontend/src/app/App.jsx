@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Route, Routes, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ArrowCounterClockwiseIcon,
   DatabaseIcon,
+  FolderSimpleIcon,
   GridFourIcon,
   HardDrivesIcon,
   MagnifyingGlassIcon,
@@ -26,6 +27,10 @@ import Dashboard from '@/pages/Dashboard.jsx';
 import Components from '@/pages/Components.jsx';
 import Detail from '@/pages/Detail.jsx';
 import Questionnaire from '@/pages/Questionnaire.jsx';
+import ProjectsPage from '@/features/projects/ProjectsPage.jsx';
+import NewProjectPage from '@/features/projects/NewProjectPage.jsx';
+import ProjectPage from '@/features/projects/ProjectPage.jsx';
+import { ActorPicker } from './actor';
 import { SidebarNav } from './Sidebar';
 import { CommandSearch } from './CommandSearch';
 import { BottomBar } from './BottomBar';
@@ -46,9 +51,15 @@ function QRoute() {
   return QUESTIONNAIRES[kind] ? <Questionnaire kind={kind} /> : <Navigate to="/dashboard" replace />;
 }
 
+/* Tabs inside a project share one page, so only moving between pages (not between tabs) plays the page transition */
+const pageKey = (path) => path.replace(/^(\/projects\/[^/]+)\/.*$/, '$1');
+
 function titleFor(path) {
   if (path === '/dashboard') return 'Overview';
   if (path === '/components') return 'Components';
+  if (path === '/projects') return 'Projects';
+  if (path === '/projects/new') return 'New project';
+  if (path.startsWith('/projects/')) return 'Project';
   if (path.startsWith('/q/')) return QUESTIONNAIRES[path.split('/')[2]]?.title ?? 'Questionnaire';
   if (path.startsWith('/c/')) return ITEMS.find((i) => i.id === path.split('/')[2])?.name ?? 'Component';
   return '';
@@ -113,6 +124,7 @@ export default function App() {
   const entries = useMemo(
     () => [
       { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFourIcon },
+      { id: '/projects', title: 'Projects', hint: 'List', icon: FolderSimpleIcon },
       { id: '/components', title: 'All components', hint: 'List', icon: GridFourIcon },
       { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrivesIcon },
       { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: WallIcon },
@@ -164,26 +176,28 @@ export default function App() {
             <span>Search</span>
             <kbd>Ctrl K</kbd>
           </button>
+          <ActorPicker />
         </header>
 
         <div className="canvas">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={loc.pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              <Routes location={loc}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/components" element={<Components />} />
-                <Route path="/c/:id/:mode?" element={<Detail />} />
-                <Route path="/q/:kind" element={<QRoute />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </motion.div>
-          </AnimatePresence>
+          {/* A page fades in; it never waits for the old one to fade out, because a page holding a shared-layout control can stall that exit forever */}
+          <motion.div
+            key={pageKey(loc.pathname)}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            <Routes location={loc}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/projects/new" element={<NewProjectPage />} />
+              <Route path="/projects/:id/*" element={<ProjectPage />} />
+              <Route path="/components" element={<Components />} />
+              <Route path="/c/:id/:mode?" element={<Detail />} />
+              <Route path="/q/:kind" element={<QRoute />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </motion.div>
         </div>
       </main>
 
