@@ -1,0 +1,15 @@
+# Unix line endings on every machine, so formatting checks match CI
+* text=auto eol=lf
+
+# Binary files are never converted
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.woff binary
+*.woff2 binary
