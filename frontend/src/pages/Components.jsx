@@ -3,16 +3,17 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ITEMS, PRODUCT_LIST } from '../data.js';
 import { useStore, itemStats, MODES } from '../store.jsx';
-import { Icon, PageHead } from '../ui.jsx';
+import { EmptyState, Icon, PageHead, StatusBadge } from '@/components';
 
-const SRC = { plan: ['Project plan', 'ok'], mixed: ['Plan + demo', 'mix'], demo: ['Demo steps', 'demo'] };
+// where a component's steps come from, and how that source is labelled
+const SRC = { plan: ['Project plan', 'positive'], mixed: ['Plan + demo', 'accent'], demo: ['Demo steps', 'warning'] };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.025 } } };
 const rise = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } } };
 
 function Tile({ item, name, mode, desc }) {
   const { state } = useStore();
   const s = itemStats(state, item);
-  const [txt, cls] = SRC[item.src];
+  const [txt, tone] = SRC[item.src];
   return (
     <motion.div variants={rise}>
       <Link to={`/c/${item.id}${mode ? '/' + mode : ''}`} className="tile">
@@ -26,8 +27,8 @@ function Tile({ item, name, mode, desc }) {
           <i style={{ width: `${s.pct}%` }} />
         </div>
         <div className="tile-f">
-          <span className={`badge ${cls}`}>{txt}</span>
-          {mode && <span className="badge mode">{MODES[mode]}</span>}
+          <StatusBadge tone={tone}>{txt}</StatusBadge>
+          {mode && <StatusBadge tone="neutral">{MODES[mode]}</StatusBadge>}
           <span className="tile-c">
             {s.done}/{s.total} tasks
           </span>
@@ -70,7 +71,7 @@ export default function Components() {
           <Tile key={p.name} item={byId[p.id]} name={p.name} mode={p.mode} desc={byId[p.id].desc} />
         ))}
       </motion.div>
-      {!infra.length && !prods.length && <p className="empty">No components match &quot;{q}&quot;.</p>}
+      {!infra.length && !prods.length && <EmptyState>No components match &quot;{q}&quot;.</EmptyState>}
     </>
   );
 }

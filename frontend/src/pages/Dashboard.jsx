@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useStore, itemStats, totals, catStats, tasksFor } from '../store.jsx';
 import { ITEMS } from '../data.js';
-import { CountUp, PageHead, ago } from '../ui.jsx';
-import { Stacked, BarList, Topology, TONE } from '../charts.jsx';
+import { Card, CountUp, EmptyState, PageHead } from '@/components';
+import { Stacked, BarList, Topology, TONE } from '@/components/charts';
+import { ago } from '@/lib/time';
 
 const rise = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -53,13 +54,17 @@ export default function Dashboard() {
         </Link>
       </PageHead>
 
-      <motion.section className="card topo-card" variants={rise} initial="hidden" animate="show">
-        <header className="card-h">
-          <h3>Network topology</h3>
-          <span className="hint">Select a node to open its checklist</span>
-        </header>
+      <Card
+        as={motion.section}
+        className="topo-card"
+        title="Network topology"
+        hint="Select a node to open its checklist"
+        variants={rise}
+        initial="hidden"
+        animate="show"
+      >
         <Topology progress={progress} />
-      </motion.section>
+      </Card>
 
       <motion.div className="kpis" variants={stagger} initial="hidden" animate="show">
         {kpis.map((k) => (
@@ -74,10 +79,7 @@ export default function Dashboard() {
         ))}
       </motion.div>
 
-      <motion.section className="card status-card" variants={rise} initial="hidden" animate="show">
-        <header className="card-h">
-          <h3>Task status</h3>
-        </header>
+      <Card as={motion.section} className="status-card" title="Task status" variants={rise} initial="hidden" animate="show">
         <div className="status-grid">
           <div>
             <div className="big-fig num">
@@ -108,27 +110,18 @@ export default function Dashboard() {
           </div>
           <BarList rows={phases} />
         </div>
-      </motion.section>
+      </Card>
 
       <motion.div className="row r-3" variants={stagger} initial="hidden" animate="show">
-        <motion.section className="card" variants={rise}>
-          <header className="card-h">
-            <h3>Network components</h3>
-          </header>
+        <Card as={motion.section} title="Network components" variants={rise}>
           <BarList rows={infra.map((i) => ({ label: i.name, pct: progress[i.id] }))} />
-        </motion.section>
-        <motion.section className="card" variants={rise}>
-          <header className="card-h">
-            <h3>Progress by pillar</h3>
-          </header>
+        </Card>
+        <Card as={motion.section} title="Progress by pillar" variants={rise}>
           <BarList rows={cats.map((c) => ({ label: c.cat, pct: c.pct }))} />
-        </motion.section>
-        <motion.section className="card" variants={rise}>
-          <header className="card-h">
-            <h3>Recent activity</h3>
-          </header>
+        </Card>
+        <Card as={motion.section} title="Recent activity" variants={rise}>
           <ul className="feed">
-            {state.log.length === 0 && <li className="empty">Nothing recorded yet.</li>}
+            {state.log.length === 0 && <EmptyState as="li">Nothing recorded yet.</EmptyState>}
             {state.log.slice(0, 6).map((l) => (
               <li key={l.t + l.text}>
                 <span>{l.text}</span>
@@ -136,7 +129,7 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
-        </motion.section>
+        </Card>
       </motion.div>
     </>
   );

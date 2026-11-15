@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QUESTIONNAIRES } from '../data.js';
 import { useStore } from '../store.jsx';
-import { PageHead, CountUp, Icon, downloadCSV } from '../ui.jsx';
+import { Card, CountUp, DataTable, FormField, Icon, PageHead, SegmentedControl, StatusBadge } from '@/components';
+import { downloadCSV } from '@/lib/csv';
 
 const HML = { H: 'High', M: 'Med', L: 'Low' };
+const HML_TONE = { H: 'accent', M: 'warning', L: 'muted' };
+const YES_NO = [
+  [1, 'Yes'],
+  [0, 'No'],
+];
+const HIGH_MED_LOW = [
+  ['H', 'High'],
+  ['M', 'Med'],
+  ['L', 'Low'],
+];
 const SUMMARY = {
   firewall: [
     ['internet', 'Internet allowed'],
@@ -17,19 +28,6 @@ const SUMMARY = {
     ['ro', 'Read-only'],
   ],
 };
-
-function Seg({ id, value, opts, onChange }) {
-  return (
-    <div className="seg">
-      {opts.map(([v, l]) => (
-        <button type="button" key={String(v)} className={value === v ? 'on' : ''} onClick={() => onChange(v)}>
-          {value === v && <motion.i layoutId={`seg-${id}`} className="seg-bg" />}
-          <span>{l}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
 
 const blank = (cols) => Object.fromEntries(cols.map((c) => [c.k, c.t === 'yn' ? 0 : c.t === 'hml' ? 'M' : '']));
 
@@ -77,13 +75,15 @@ export default function Questionnaire({ kind, embedded }) {
         ))}
       </div>
 
-      <section className="card qf">
-        <div className="card-h">
-          <h3>{def.title}</h3>
+      <Card
+        className="qf"
+        title={def.title}
+        actions={
           <button className="btn ghost sm" onClick={() => setOpen(!open)}>
             {open ? 'Collapse' : 'New response'}
           </button>
-        </div>
+        }
+      >
         <p className="qsub">{def.sub}</p>
         <AnimatePresence initial={false}>
           {open && (
@@ -96,38 +96,27 @@ export default function Questionnaire({ kind, embedded }) {
             >
               <div className="qgrid">
                 {def.cols.map((c, i) => (
-                  <div className={`q ${c.t === 'text' ? 'wide' : ''}`} key={c.k}>
-                    <label>
-                      <span className="qn">{i + 1}</span>
-                      {c.q}
-                    </label>
-                    {c.t === 'text' && (
-                      <input value={f[c.k]} placeholder={c.ph || ''} onChange={(e) => setF({ ...f, [c.k]: e.target.value })} />
-                    )}
-                    {c.t === 'yn' && (
-                      <Seg
-                        id={`${kind}-${c.k}`}
-                        value={f[c.k]}
-                        opts={[
-                          [1, 'Yes'],
-                          [0, 'No'],
-                        ]}
-                        onChange={(v) => setF({ ...f, [c.k]: v })}
-                      />
-                    )}
-                    {c.t === 'hml' && (
-                      <Seg
-                        id={`${kind}-${c.k}`}
-                        value={f[c.k]}
-                        opts={[
-                          ['H', 'High'],
-                          ['M', 'Med'],
-                          ['L', 'Low'],
-                        ]}
-                        onChange={(v) => setF({ ...f, [c.k]: v })}
-                      />
-                    )}
-                  </div>
+                  <FormField key={c.k} label={c.q} number={i + 1} group={c.t !== 'text'}>
+                    {(field) =>
+                      c.t === 'text' ? (
+                        <input
+                          {...field.control}
+                          className="input"
+                          value={f[c.k]}
+                          placeholder={c.ph || ''}
+                          onChange={(e) => setF({ ...f, [c.k]: e.target.value })}
+                        />
+                      ) : (
+                        <SegmentedControl
+                          {...field.control}
+                          id={`${kind}-${c.k}`}
+                          value={f[c.k]}
+                          options={c.t === 'yn' ? YES_NO : HIGH_MED_LOW}
+                          onChange={(v) => setF({ ...f, [c.k]: v })}
+                        />
+                      )
+                    }
+                  </FormField>
                 ))}
               </div>
               <div className="qf-foot">
@@ -140,68 +129,68 @@ export default function Questionnaire({ kind, embedded }) {
             </motion.form>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
 
-      <section className="card tbl">
-        <div className="card-h">
-          <h3>Look-up table</h3>
-          <span className="hint">click a Yes/No chip to change it</span>
+      <Card
+        flush
+        title="Look-up table"
+        hint="click a Yes/No chip to change it"
+        actions={
           <button className="btn ghost sm" onClick={exportCsv} disabled={!rows.length}>
             <Icon name="DownloadSimple" size={15} />
             Export CSV
           </button>
-        </div>
-        <div className="scroll">
-          <table className="lookup">
-            <thead>
-              <tr>
+        }
+      >
+        <DataTable
+          className="lookup"
+          columns={[
+            ...def.cols.map((c) => c.l),
+            <span key="actions" className="sr-only">
+              Actions
+            </span>,
+          ]}
+          isEmpty={!rows.length}
+          empty="No responses yet. Fill in the questionnaire above."
+        >
+          <AnimatePresence initial={false}>
+            {rows.map((r) => (
+              <motion.tr key={r.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}>
                 {def.cols.map((c) => (
-                  <th key={c.k}>{c.l}</th>
-                ))}
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence initial={false}>
-                {rows.map((r) => (
-                  <motion.tr key={r.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}>
-                    {def.cols.map((c) => (
-                      <td key={c.k}>
-                        {c.t === 'yn' ? (
-                          <button className={`yn ${r[c.k] ? 'y' : 'n'}`} onClick={() => patchRow(kind, r.id, { [c.k]: r[c.k] ? 0 : 1 })}>
-                            {r[c.k] ? 'Yes' : 'No'}
-                          </button>
-                        ) : c.t === 'hml' ? (
-                          <button
-                            className={`bw b${r[c.k]}`}
-                            onClick={() => patchRow(kind, r.id, { [c.k]: { H: 'M', M: 'L', L: 'H' }[r[c.k]] })}
-                          >
-                            {HML[r[c.k]]}
-                          </button>
-                        ) : (
-                          <span className={c.k === 'user' ? 'strong' : ''}>{r[c.k] || '–'}</span>
-                        )}
-                      </td>
-                    ))}
-                    <td>
-                      <button className="x" onClick={() => delRow(kind, r.id)} aria-label="Delete row">
-                        <Icon name="Trash" size={16} />
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-              {!rows.length && (
-                <tr>
-                  <td colSpan={def.cols.length + 1} className="empty">
-                    No responses yet. Fill in the questionnaire above.
+                  <td key={c.k}>
+                    {c.t === 'yn' ? (
+                      <StatusBadge
+                        as="button"
+                        shape="toggle"
+                        tone={r[c.k] ? 'positive' : 'muted'}
+                        onClick={() => patchRow(kind, r.id, { [c.k]: r[c.k] ? 0 : 1 })}
+                      >
+                        {r[c.k] ? 'Yes' : 'No'}
+                      </StatusBadge>
+                    ) : c.t === 'hml' ? (
+                      <StatusBadge
+                        as="button"
+                        shape="toggle"
+                        tone={HML_TONE[r[c.k]]}
+                        onClick={() => patchRow(kind, r.id, { [c.k]: { H: 'M', M: 'L', L: 'H' }[r[c.k]] })}
+                      >
+                        {HML[r[c.k]]}
+                      </StatusBadge>
+                    ) : (
+                      <span className={c.k === 'user' ? 'strong' : ''}>{r[c.k] || '–'}</span>
+                    )}
                   </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                ))}
+                <td>
+                  <button className="x" onClick={() => delRow(kind, r.id)} aria-label="Delete row">
+                    <Icon name="Trash" size={16} />
+                  </button>
+                </td>
+              </motion.tr>
+            ))}
+          </AnimatePresence>
+        </DataTable>
+      </Card>
     </>
   );
 
