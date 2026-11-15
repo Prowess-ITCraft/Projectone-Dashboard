@@ -1,0 +1,111 @@
+/* Element defaults. App styles live in the base layer so Tailwind utilities (layered later) win where they overlap. */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+    color: var(--ink);
+  }
+  html {
+    background: var(--ground);
+  }
+  body {
+    /* the lit ground: soft colour fields behind the glass cards */
+    background: var(--bg);
+    background-attachment: fixed;
+    transition: color 0.25s;
+    font: var(--fs-body) / var(--lh-body) var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    text-align: inherit;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  img {
+    display: block;
+  }
+  kbd {
+    margin-left: auto;
+    font: var(--fw-medium) var(--fs-micro) var(--text);
+    color: var(--mut);
+    border: 1px solid var(--line-2);
+    border-radius: var(--rad-xs);
+    padding: 1px var(--space-6);
+    background: var(--sheet);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    text-align: left;
+    font-size: var(--fs-small);
+    color: var(--mut);
+    font-weight: var(--fw-medium);
+    padding: var(--space-8) var(--space-12);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--line);
+  }
+  td {
+    padding: 11px var(--space-12);
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  tr:last-child td {
+    border-bottom: 0;
+  }
+  tbody tr {
+    transition: background 0.12s;
+  }
+  tbody tr:hover {
+    background: var(--hover);
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .strong {
+    font-weight: var(--fw-semibold);
+  }
+  :focus-visible {
+    outline: 2px solid var(--data);
+    outline-offset: 2px;
+    border-radius: var(--rad-sm);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-2);
+    border-radius: var(--rad-xl);
+    border: 2px solid var(--sheet);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

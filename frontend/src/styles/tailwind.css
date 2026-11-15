@@ -1,12 +1,12 @@
 @layer theme, base, components, utilities;
-/* Tailwind without preflight: the app's own base styles in styles.css stay in charge */
+/* Tailwind without preflight: the app's own base styles stay in charge */
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import 'tw-animate-css';
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* shadcn token names mapped onto the ProjectOne palette in styles.css */
+/* Utilities read the same tokens as the stylesheets (tokens.css): shadcn colour names, the type scale and two radii */
 @theme inline {
   --color-background: var(--ground);
   --color-foreground: var(--ink);
@@ -21,4 +21,15 @@
   --color-ring: var(--data);
   --font-sans: var(--text);
   --font-display: var(--display);
+
+  --text-nano: var(--fs-nano);
+  --text-micro: var(--fs-micro);
+  --text-caption: var(--fs-caption);
+  --text-label: var(--fs-label);
+  --text-ui: var(--fs-ui);
+  --text-body: var(--fs-body);
+  --text-brand: var(--fs-brand);
+
+  --radius-kbd: var(--rad-3xs);
+  --radius-nav: var(--rad-md);
 }

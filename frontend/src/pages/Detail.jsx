@@ -2,9 +2,11 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams, Navigate } from 'react-router-dom';
 import { ITEMS } from '../data.js';
 import { useStore, itemStats, tasksFor, MODES } from '../store.jsx';
-import { Icon, PageHead, Ring, CountUp, downloadCSV } from '../ui.jsx';
+import { Card, CountUp, DataTable, FormField, Icon, PageHead, Ring, StatusBadge, TASK_STATUS } from '@/components';
+import { downloadCSV } from '@/lib/csv';
 
-const STATUS = ['Pending', 'In progress', 'Done'];
+const STATUS = TASK_STATUS.map((s) => s.label);
+const COLUMNS = ['SN', 'Done', 'Task', 'Start date', 'End date', 'Progress', 'Comments / suggestion'];
 const PHASES = ['Installation', 'Configuration'];
 
 function Row({ t, label }) {
@@ -40,22 +42,40 @@ function Row({ t, label }) {
       </td>
       <td className="ttl">
         {t.title}
-        {t.demo && <em className="chip">demo</em>}
+        {t.demo && (
+          <StatusBadge as="em" shape="chip" tone="warning">
+            demo
+          </StatusBadge>
+        )}
       </td>
       <td>
-        <input type="date" value={v.start} onChange={(e) => setTask(t.key, { start: e.target.value })} aria-label="Start date" />
+        <input
+          type="date"
+          className="input input-date"
+          value={v.start}
+          onChange={(e) => setTask(t.key, { start: e.target.value })}
+          aria-label="Start date"
+        />
       </td>
       <td>
-        <input type="date" value={v.end} onChange={(e) => setTask(t.key, { end: e.target.value })} aria-label="End date" />
+        <input
+          type="date"
+          className="input input-date"
+          value={v.end}
+          onChange={(e) => setTask(t.key, { end: e.target.value })}
+          aria-label="End date"
+        />
       </td>
       <td className="prog">
-        <button
-          className={`pill p${v.s}`}
+        <StatusBadge
+          as="button"
+          shape="pill"
+          tone={TASK_STATUS[v.s].tone}
           onClick={() => setTask(t.key, { s: (v.s + 1) % 3 }, `${label}: ${t.title}`)}
           title="Click to change status"
         >
           {STATUS[v.s]}
-        </button>
+        </StatusBadge>
         <div className="mbar">
           <motion.i initial={false} animate={{ width: `${pct}%` }} transition={{ duration: 0.3 }} />
         </div>
@@ -63,7 +83,7 @@ function Row({ t, label }) {
       <td>
         <input
           type="text"
-          className="cm"
+          className="input cm"
           placeholder="Add a comment"
           defaultValue={v.c}
           onBlur={(e) => e.target.value !== v.c && setTask(t.key, { c: e.target.value })}
@@ -115,19 +135,20 @@ export default function Detail() {
 
       <div className="dh">
         <div className="dh-m">
-          <label className="sel-l" htmlFor="worktype">
-            Work type
-          </label>
-          <div className="sel">
-            <select id="worktype" value={mode} onChange={(e) => nav(`/c/${item.id}/${e.target.value}`)}>
-              {Object.entries(MODES).map(([k, l]) => (
-                <option key={k} value={k}>
-                  {l}
-                </option>
-              ))}
-            </select>
-            <Icon name="CaretDown" size={14} />
-          </div>
+          <FormField label="Work type">
+            {(f) => (
+              <div className="sel">
+                <select {...f.control} value={mode} onChange={(e) => nav(`/c/${item.id}/${e.target.value}`)}>
+                  {Object.entries(MODES).map(([k, l]) => (
+                    <option key={k} value={k}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+                <Icon name="CaretDown" size={14} />
+              </div>
+            )}
+          </FormField>
           <p className="note">{note}</p>
         </div>
         <dl className="dh-s">
@@ -163,34 +184,13 @@ export default function Detail() {
           if (!rows.length) return null;
           const done = rows.filter((t) => state.tasks[t.key]?.s === 2).length;
           return (
-            <section className="card tbl" key={ph}>
-              <header className="card-h">
-                <h3>{ph} steps</h3>
-                <span className="hint num">
-                  {done} of {rows.length} completed
-                </span>
-              </header>
-              <div className="scroll">
-                <table className="check">
-                  <thead>
-                    <tr>
-                      <th>SN</th>
-                      <th>Done</th>
-                      <th>Task</th>
-                      <th>Start date</th>
-                      <th>End date</th>
-                      <th>Progress</th>
-                      <th>Comments / suggestion</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((t) => (
-                      <Row key={t.key} t={t} label={item.name} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <Card key={ph} flush title={`${ph} steps`} hint={<span className="num">{`${done} of ${rows.length} completed`}</span>}>
+              <DataTable className="check" columns={COLUMNS}>
+                {rows.map((t) => (
+                  <Row key={t.key} t={t} label={item.name} />
+                ))}
+              </DataTable>
+            </Card>
           );
         })}
       </motion.div>

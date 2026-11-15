@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Icon } from './ui.jsx';
+import { Icon } from './Icon';
 
 /* One hue for data (teal), at three intensities for a state machine; grey for nothing yet. */
 export const TONE = { done: 'var(--data)', active: 'var(--data-mid)', pending: 'var(--track)' };

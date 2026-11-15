@@ -17,3 +17,7 @@ The restructure plan proposed converting the app to TypeScript in strict mode. T
 
 - The strict TypeScript rules in the original plan (no `any`, no non-null assertions) apply only to the two TypeScript files.
 - Domain types from the data model will be documented with JSDoc `@typedef` instead of TypeScript types. If this proves too weak for the data layer in Stage 3, the decision can be revisited with the owner.
+
+## Update (Stage 2)
+
+With the owner's approval, the last two TypeScript files were converted during the shell rework: `dashboard-sidebar.tsx` became `src/app/Sidebar.jsx` and `src/app/CommandSearch.jsx`, and `src/lib/utils.ts` became `utils.js`. No TypeScript application code remains; `tsconfig.json` stays for editor hints and the `@/` path alias.

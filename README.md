@@ -7,6 +7,11 @@ Internal ITCraft tool that turns a confirmed customer order into planned, checkl
 ```text
 frontend/          React + Vite app
   docs/            engineering notes: decisions (adr/), MEMORY.md, TASKS.md
+  src/app/         shell: sidebar, phone bottom bar, search, navigation config, routes
+  src/components/  shared parts: Card, DataTable, StatusBadge, FormField, Dialog, states, charts
+  src/styles/      design tokens (tokens.css) and the stylesheets that use them
+  src/pages/       screens
+  src/lib/         small helpers (CSV export, time, class names, media queries)
 backend/           reserved for the API (not started)
 docker-compose.yml local development
 ```
@@ -36,16 +41,16 @@ The app is served on http://localhost:9555. The API address is read from `VITE_A
 
 ## Scripts (in `frontend/`)
 
-| Script | What it does |
-|---|---|
-| `npm run dev` | Dev server on port 9555 |
-| `npm run build` | Production build into `dist/` |
-| `npm run preview` | Serve the production build on port 9555 |
-| `npm run lint` | ESLint |
-| `npm run format` / `format:check` | Prettier write / check |
-| `npm run typecheck` | Type check the TypeScript files |
-| `npm test` | Vitest, single run |
-| `npm run check` | All of the above in CI order |
+| Script                            | What it does                                                         |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `npm run dev`                     | Dev server on port 9555                                              |
+| `npm run build`                   | Production build into `dist/`                                        |
+| `npm run preview`                 | Serve the production build on port 9555                              |
+| `npm run lint`                    | ESLint                                                               |
+| `npm run format` / `format:check` | Prettier write / check                                               |
+| `npm run typecheck`               | TypeScript compiler over `src` (editor hints; the app is JavaScript) |
+| `npm test`                        | Vitest, single run                                                   |
+| `npm run check`                   | All of the above in CI order                                         |
 
 ## Deployment
 

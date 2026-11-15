@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { GridFour, SquaresFour } from '@phosphor-icons/react';
-import { CommandSearch } from './dashboard-sidebar';
+import { GridFourIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import { CommandSearch } from './CommandSearch';
 
 const entries = [
-  { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFour },
-  { id: '/components', title: 'All components', hint: 'List', icon: GridFour },
+  { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFourIcon },
+  { id: '/components', title: 'All components', hint: 'List', icon: GridFourIcon },
 ];
 
 const setup = (open = true) => {
