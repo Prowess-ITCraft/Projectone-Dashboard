@@ -25,7 +25,7 @@ export const NARROW_QUERY = `(max-width: ${NAV_BREAKPOINT}px)`;
 */
 export const AREAS = [
   { id: '/dashboard', title: 'Dashboard', icon: SquaresFourIcon, built: true, bottomBar: true },
-  { id: '/projects', title: 'Projects', icon: FolderSimpleIcon, built: false, bottomBar: true },
+  { id: '/projects', title: 'Projects', icon: FolderSimpleIcon, built: true, bottomBar: true },
   { id: '/tasks', title: 'My tasks', icon: CheckSquareOffsetIcon, built: false, bottomBar: true },
   { id: '/approvals', title: 'Approvals', icon: SealCheckIcon, built: false },
   { id: '/records', title: 'Records', icon: ChartBarIcon, built: false },
@@ -61,5 +61,6 @@ export function bottomBarItems(areas = AREAS) {
 /* The nav item that should look selected for a route: checklist pages belong to Components */
 export function activeFor(path) {
   if (path.startsWith('/c/')) return '/components';
+  if (path.startsWith('/projects')) return '/projects';
   return path;
 }
