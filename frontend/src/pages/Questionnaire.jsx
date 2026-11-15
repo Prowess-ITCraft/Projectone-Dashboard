@@ -6,10 +6,9 @@ import { Card, CountUp, DataTable, FormField, Icon, PageHead, SegmentedControl, 
 import { downloadCSV } from '@/lib/csv';
 
 const HML = { H: 'High', M: 'Med', L: 'Low' };
-const HML_TONE = { H: 'accent', M: 'warning', L: 'muted' };
 const YES_NO = [
   [1, 'Yes'],
-  [0, 'No'],
+  [0, 'No', 'off'],
 ];
 const HIGH_MED_LOW = [
   ['H', 'High'],
@@ -162,7 +161,7 @@ export default function Questionnaire({ kind, embedded }) {
                       <StatusBadge
                         as="button"
                         shape="toggle"
-                        tone={r[c.k] ? 'positive' : 'muted'}
+                        tone={r[c.k] ? 'on' : 'off'}
                         onClick={() => patchRow(kind, r.id, { [c.k]: r[c.k] ? 0 : 1 })}
                       >
                         {r[c.k] ? 'Yes' : 'No'}
@@ -171,7 +170,7 @@ export default function Questionnaire({ kind, embedded }) {
                       <StatusBadge
                         as="button"
                         shape="toggle"
-                        tone={HML_TONE[r[c.k]]}
+                        tone="on"
                         onClick={() => patchRow(kind, r.id, { [c.k]: { H: 'M', M: 'L', L: 'H' }[r[c.k]] })}
                       >
                         {HML[r[c.k]]}
