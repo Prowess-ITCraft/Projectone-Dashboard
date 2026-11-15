@@ -6,7 +6,7 @@ Short facts a new contributor needs before changing anything. Decisions with rea
 
 - Work goes in stages. Each stage starts with questions to the owner, then a plan, then the build, then a stage report. The next stage starts only after the owner approves.
 - The owner does every Git write: commits, pushes and pull requests. Changes are left in the working tree with suggested commit groups.
-- Branches: `feature/stage-<number>-<topic>`. Commit messages: Conventional Commits.
+- Branch: every stage goes on `feature/stage-1-foundation`; no new branch per stage. Commit messages: Conventional Commits.
 - No em dashes in UI copy, docs, comments or commit messages.
 - Never invent procedure steps, field lists, role permissions or approval limits. Undecided items go to the open questions list and are built as data or interfaces.
 

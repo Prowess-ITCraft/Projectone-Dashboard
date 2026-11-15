@@ -8,8 +8,7 @@
 
 ## Waiting on the owner
 
-- [ ] Review and merge the Stage 1 pull request; change the Vercel root directory to `frontend/` when it merges
-- [ ] Create `feature/stage-2-design-system`, review and commit the Stage 2 changes, open the pull request
+- [ ] Push `feature/stage-1-foundation` (Stages 1 and 2; all stages share this branch) and open the pull request; change the Vercel root directory to `frontend/` when it merges
 - [ ] Approve the Stage 3 (intake slice) plan
 
 ## Next
