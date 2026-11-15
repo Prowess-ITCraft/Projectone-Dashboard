@@ -1,0 +1,65 @@
+{
+  "document_type": "prismsuite",
+  "customer": "Sample Industries",
+  "location_printed": "SAMPLE CITY",
+  "date": "2026-04-07",
+  "pages": 26,
+  "asset_summary": {
+    "laptop": 15,
+    "desktop": 11,
+    "server": 1,
+    "firewall": 0,
+    "backup_device": 0,
+    "switch": 3,
+    "router": 1,
+    "access_point": 0
+  },
+  "os_distribution": {
+    "windows_11": 16,
+    "windows_10": 10
+  },
+  "server": {
+    "model": "Lenovo ThinkSystem ST50 (7Y48CTO1WW)",
+    "model_conflict_on_last_page": "ST250 (7Y45CTO1WW)",
+    "os": "Windows Server 2022 Standard 21H2",
+    "ram_gb": 23.84,
+    "drives": "256 GB SSD, 1 TB HDD",
+    "raid_mirrored": false,
+    "secure_boot": false,
+    "firmware_date": "2022-06-05",
+    "missing_patches": 5,
+    "sophos_realtime_scan": false
+  },
+  "network": {
+    "router": "Syrotech SYGPON-4000-WADON",
+    "switches": ["D-Link DGS-1016A (16)", "Mercusys MS108G (8)", "D-Link DGS-1008A (8)"]
+  },
+  "av": {
+    "sophos_intercept_x": 26,
+    "kaspersky": 3,
+    "mcafee": 4
+  },
+  "scores": {
+    "system_health": 78.52,
+    "it_structure_health": 47,
+    "performance": 30.25,
+    "ha": 40.95,
+    "security_posture": 64
+  },
+  "recommendations": [
+    "Remove Kaspersky and McAfee",
+    "Add 512 GB SSD on 1 endpoint",
+    "Office 2016 to M365 on 1 endpoint",
+    "Deploy EPS with EDR on server",
+    "Deploy NAS if data is critical",
+    "Deploy 24-port managed switch",
+    "Deploy entry-level firewall"
+  ],
+  "endpoint_flags": {
+    "dual_av_hosts": "see table pages 15-19 in PDF",
+    "low_ram_4gb": ["DESKTOP-EXAMPLE1 (first listing)"],
+    "duplicate_hostname": "DESKTOP-EXAMPLE1 x2",
+    "win10_needing_upgrade": 10
+  },
+  "note": "Full 26-row endpoint table is in the PDF; parse it with pdfplumber in the golden-file test."
+}

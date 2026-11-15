@@ -1,0 +1,65 @@
+{
+  "document_type": "po",
+  "issuer": "Sample Engineers (Mumbai) Private Limited",
+  "number": "SEPL/PO/009/26-27",
+  "date": "2026-05-05",
+  "reference_pi": "ITCRAFT/NN/2627/001",
+  "reference_pi_date": "2026-04-21",
+  "to": "Prowess IT Craft Pvt. Ltd.",
+  "lines": [
+    {
+      "no": 1,
+      "kind": "service",
+      "module": "eps",
+      "title": "System Sanitization Services",
+      "qty": 11,
+      "rate": 500,
+      "amount": 5500,
+      "per_endpoint": true
+    },
+    {
+      "no": 2,
+      "kind": "subscription",
+      "module": "eps",
+      "title": "Sophos Intercept XDR (1 User / 3 Years)",
+      "qty": 11,
+      "rate": 3498,
+      "amount": 38478
+    },
+    {
+      "no": 3,
+      "kind": "service",
+      "module": "eps",
+      "paired_to": 2,
+      "title": "EPS Implementation, Security & Configuration + 1 Year Support",
+      "qty": 1,
+      "rate": 6000,
+      "amount": 6000
+    },
+    {
+      "no": 4,
+      "kind": "product",
+      "module": "network_router",
+      "title": "Asus RT-AX53U AX1800 WiFi 6 Router",
+      "qty": 1,
+      "rate": 29318,
+      "amount": 29318
+    },
+    {
+      "no": 5,
+      "kind": "service",
+      "module": "network_router",
+      "paired_to": 4,
+      "unpaired_candidate": true,
+      "title": "Installation & Configuration Charges (1 Year Support)",
+      "qty": 1,
+      "rate": 1500,
+      "amount": 1500
+    }
+  ],
+  "totals": {
+    "subtotal": 80796,
+    "gst_18": 14543,
+    "grand_total": 95339
+  }
+}
