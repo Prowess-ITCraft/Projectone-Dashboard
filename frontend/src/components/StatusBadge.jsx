@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
     toggle  a yes/no or high/medium/low value that can be clicked to change
     chip    a tag after a line of text
 */
-export const TONES = ['positive', 'accent', 'warning', 'neutral', 'muted'];
+// on and off are for clickable switches (lime glass and quiet glass); the rest describe a status
+export const TONES = ['positive', 'accent', 'warning', 'neutral', 'muted', 'on', 'off'];
 
 export function StatusBadge({ tone = 'muted', shape = 'badge', as: Tag = 'span', className, children, ...rest }) {
   const props = Tag === 'button' ? { type: 'button', ...rest } : rest;

@@ -1,7 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
-import { Card, DataTable, Dialog, EmptyState, ErrorState, FormField, LoadingState, StatusBadge, TASK_STATUS } from '@/components';
+import {
+  Card,
+  DataTable,
+  Dialog,
+  EmptyState,
+  ErrorState,
+  FormField,
+  LoadingState,
+  SegmentedControl,
+  StatusBadge,
+  TASK_STATUS,
+} from '@/components';
 
 describe('Card', () => {
   it('renders a header only when there is something to put in it', () => {
@@ -91,6 +102,38 @@ describe('FormField', () => {
       </FormField>,
     );
     expect(screen.getByRole('group', { name: 'Allow edit?' })).toBeInTheDocument();
+  });
+});
+
+describe('SegmentedControl', () => {
+  const yesNo = [
+    [1, 'Yes'],
+    [0, 'No', 'off'],
+  ];
+
+  it('shows the lime pill for the selected choice, and the neutral pill for an "off" choice', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<SegmentedControl id="t" value={0} options={yesNo} onChange={onChange} aria-label="Allow edit?" />);
+    const yes = screen.getByRole('button', { name: 'Yes' });
+    const no = screen.getByRole('button', { name: 'No' });
+    expect(no).toHaveAttribute('aria-pressed', 'true');
+    expect(no.querySelector('.seg-bg')).not.toHaveClass('positive');
+
+    fireEvent.click(yes);
+    expect(onChange).toHaveBeenCalledWith(1);
+    rerender(<SegmentedControl id="t" value={1} options={yesNo} onChange={onChange} aria-label="Allow edit?" />);
+    expect(yes).toHaveClass('on', 'positive');
+    expect(yes.querySelector('.seg-bg')).toHaveClass('positive');
+  });
+
+  it('uses the lime pill for any selected choice without a tone', () => {
+    const hml = [
+      ['H', 'High'],
+      ['M', 'Med'],
+      ['L', 'Low'],
+    ];
+    render(<SegmentedControl id="b" value="M" options={hml} onChange={() => {}} aria-label="Bandwidth" />);
+    expect(screen.getByRole('button', { name: 'Med' }).querySelector('.seg-bg')).toHaveClass('positive');
   });
 });
 
