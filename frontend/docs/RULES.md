@@ -34,7 +34,7 @@ Rules for developing the Project One frontend. They apply to every contributor, 
 - No em dashes anywhere: UI text, docs, comments, commit messages.
 - UI copy is short and plain. No emoji or marketing language.
 - Keep `README.md`, `MEMORY.md` and `TASKS.md` current at the end of each stage; record significant decisions as decision records in `adr/`.
-- Customer material is described in general terms only: no customer names, GSTINs, IP addresses or bank details in tracked files.
+- Customer material is described in general terms only: no customer names, GSTINs, IP addresses or bank details in tracked files. The repository is public. Sample fixtures in `src/data/fixtures` are anonymised copies with invented names, GSTINs, addresses and contacts; never add real customer data or bank details there.
 
 ## 5. Git
 

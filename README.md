@@ -11,6 +11,9 @@ frontend/          React + Vite app
   src/components/  shared parts: Card, DataTable, StatusBadge, FormField, Dialog, states, charts
   src/styles/      design tokens (tokens.css) and the stylesheets that use them
   src/pages/       screens
+  src/features/    one folder per product area (projects: intake, review, classification, modules)
+  src/domain/      pure rules and types (money, classification, validation, stages, roles)
+  src/data/        the data interface, the local adapter and the anonymised sample fixtures
   src/lib/         small helpers (CSV export, time, class names, media queries)
 backend/           reserved for the API (not started)
 docker-compose.yml local development
