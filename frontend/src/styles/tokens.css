@@ -201,6 +201,12 @@
     --shadow-btn: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 22px -10px rgba(168, 216, 46, 0.8);
     --shadow-pill: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
     --shadow-dialog: 0 24px 60px -24px rgba(0, 0, 0, 0.55);
+    --shadow-seg-off: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 4px 12px -6px rgba(0, 0, 0, 0.45);
+    --shadow-seg-on: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 16px -8px rgba(168, 216, 46, 0.85);
+
+    /* segmented control glass: a tinted, see-through track and pill built from the theme colours */
+    --seg-track: color-mix(in srgb, var(--track) 70%, transparent);
+    --seg-pill: color-mix(in srgb, var(--pill) 80%, transparent);
 
     /* sizes */
     --sidebar-w: 260px;
