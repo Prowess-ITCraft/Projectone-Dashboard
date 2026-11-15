@@ -1,6 +1,6 @@
 # Memory
 
-Short facts a new contributor needs before changing anything. Decisions with reasons are in `adr/`.
+Short facts a new contributor needs before changing anything. Rules for development and for agents are in `RULES.md`; decisions with reasons are in `adr/`.
 
 ## Working agreement
 
