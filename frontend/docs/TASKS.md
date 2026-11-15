@@ -4,22 +4,25 @@
 
 - [x] Stage 0: orientation, dashboard inventory, gap report
 - [x] Stage 1: move into `frontend/`, Node 22 pin, dev port 9555, Docker Compose, ESLint, Prettier, Vitest, GitHub Actions, README and PRODUCT rewrite, decision records 0001 to 0004
+- [x] Stage 2: design tokens, shared components, `src/app` shell with navigation config, phone bottom bar and drawer backdrop, 360 px fixes, `*Icon` names, unused logo removed, last TypeScript files converted, decision records 0005 and 0006
 
 ## Waiting on the owner
 
-- [ ] Review and commit the Stage 1 changes, open the pull request
-- [ ] Change the Vercel project's root directory to `frontend/` when Stage 1 merges
-- [ ] Approve Stage 1 so Stage 2 can start
+- [ ] Review and merge the Stage 1 pull request; change the Vercel root directory to `frontend/` when it merges
+- [ ] Create `feature/stage-2-design-system`, review and commit the Stage 2 changes, open the pull request
+- [ ] Approve the Stage 3 (intake slice) plan
 
 ## Next
 
-- [ ] Stage 2: design system and shell (tokens, shared components, responsive shell at 360 px, navigation for the new areas)
-- [ ] Stage 3: data layer (domain shapes, `ProjectOneApi`, local IndexedDB adapter, seed data)
+- [ ] Stage 3, intake slice (planned, waiting for approval): `ProjectOneApi` on IndexedDB (`idb`), customers and projects with the stage tracker, upload of PI, PO and PrismSuite report (samples from extracted JSON, other files by manual entry), line review, classification and pairing, coverage check, module creation (modules start as awaiting delivery)
 
 ## Known follow-ups
+
+- [ ] The owner supplied sample lookup tables (firewall, domain, NAS), a sample work schedule and a sample completion report; they are kept in the private samples folder for Stages 6, 7 and 10
 
 - [ ] ESLint 10 once `eslint-plugin-react` and `eslint-plugin-jsx-a11y` support it
 - [ ] `npm audit`: react-router 6 open redirect advisory (fix needs React Router 7, a major upgrade) and the esbuild dev-server advisory through Vite 5 (fix needs a newer Vite). Both need owner approval
 - [ ] React Router future flag warnings (`v7_startTransition`, `v7_relativeSplatPath`) appear in tests; decide with the router upgrade
-- [ ] `src/assets/projectone-logo.jpeg` is unused; remove in Stage 2
-- [ ] Phosphor icon imports use names the library has marked deprecated in favour of the `*Icon` suffix; switch during Stage 2
+- [ ] On phones the checklist tables scroll sideways inside their cards; a stacked row layout belongs with the real checklist stage
+- [ ] The overview topology diagram is small at 360 px; revisit with the dashboard work
+- [ ] The spacing scale has a step for nearly every value in use; reducing it would change the look and needs an owner decision
