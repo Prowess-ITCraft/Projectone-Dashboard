@@ -69,6 +69,8 @@
   }
   .btn:not(.ghost) {
     background: var(--lime-grad);
+    /* the gradient covers the transparent border too; without this it repeats under the border and shows a dark edge */
+    background-origin: border-box;
     box-shadow: var(--shadow-btn);
   }
   .btn:not(.ghost):hover:not(:disabled) {

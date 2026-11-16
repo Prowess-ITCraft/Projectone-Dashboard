@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import App from './App.jsx';
 import { ENGINEER, makeApi, renderApp } from '@/test/providers.jsx';
 
@@ -82,6 +82,37 @@ describe('project tabs', () => {
       fireEvent.click(screen.getByRole('link', { name: new RegExp(`^${tab}`) }));
       expect(await screen.findByText(text, {}, { timeout: 3000 })).toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 1, name: 'Tab Customer' })).toBeInTheDocument();
+    }
+  });
+});
+
+describe('App shell when the window changes width', () => {
+  it('closes the sidebar when a wide window becomes narrow, so the drawer does not cover the page', async () => {
+    const listeners = new Set();
+    const original = window.matchMedia;
+    let narrow = false;
+    window.matchMedia = (query) => ({
+      get matches() {
+        return /max-width/.test(query) ? narrow : false;
+      },
+      media: query,
+      addEventListener: (_e, l) => listeners.add(l),
+      removeEventListener: (_e, l) => listeners.delete(l),
+      addListener: (l) => listeners.add(l),
+      removeListener: (l) => listeners.delete(l),
+    });
+    try {
+      renderAt('/dashboard');
+      await screen.findByRole('heading', { level: 1, name: 'Overview' });
+      expect(document.getElementById('app-sidebar')).not.toHaveAttribute('inert');
+      act(() => {
+        narrow = true;
+        listeners.forEach((l) => l({ matches: true }));
+      });
+      expect(document.getElementById('app-sidebar')).toHaveAttribute('inert');
+      expect(screen.queryByRole('button', { name: 'Close navigation' })).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
     }
   });
 });

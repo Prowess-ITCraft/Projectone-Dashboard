@@ -3,6 +3,7 @@ import { Route, Routes, Navigate, useLocation, useNavigate, useParams } from 're
 import { motion } from 'framer-motion';
 import {
   ArrowCounterClockwiseIcon,
+  SignOutIcon,
   DatabaseIcon,
   FolderSimpleIcon,
   GridFourIcon,
@@ -32,7 +33,9 @@ import Questionnaire from '@/pages/Questionnaire.jsx';
 import ProjectsPage from '@/features/projects/ProjectsPage.jsx';
 import NewProjectPage from '@/features/projects/NewProjectPage.jsx';
 import ProjectPage from '@/features/projects/ProjectPage.jsx';
+import LoginPage from '@/features/auth/LoginPage.jsx';
 import { ActorPicker, useActor } from './actor';
+import { useSession } from './session';
 import { SidebarNav } from './Sidebar';
 import { CommandSearch } from './CommandSearch';
 import { BottomBar } from './BottomBar';
@@ -71,17 +74,37 @@ function titleFor(path, catalog) {
 const groups = navGroups();
 const barItems = bottomBarItems();
 
+/* Everything except the sign-in page sits behind the demo sign-in; a signed-out visit returns to where it was headed */
 export default function App() {
+  const loc = useLocation();
+  const { session } = useSession();
+  if (loc.pathname === '/login') {
+    return session ? <Navigate to={loc.state?.from ?? '/dashboard'} replace /> : <LoginPage />;
+  }
+  if (!session) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  return <Shell />;
+}
+
+function Shell() {
   const loc = useLocation();
   const nav = useNavigate();
   const api = useApi();
   const { actor } = useActor();
+  const { session, signOut } = useSession();
   const catalog = useCatalog();
   const narrow = useMediaQuery(NARROW_QUERY);
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
   const [sideOpen, setSideOpen] = useState(() => !window.matchMedia(NARROW_QUERY).matches);
   const [searchOpen, setSearchOpen] = useState(false);
   const drawerOpen = narrow && sideOpen;
+
+  // Becoming narrow (a window made smaller, a tablet turned) closes the sidebar, so the drawer never covers the page
+  // by itself; it then opens only from More. Becoming wide leaves the person's open or collapsed choice alone.
+  const [wasNarrow, setWasNarrow] = useState(narrow);
+  if (narrow !== wasNarrow) {
+    setWasNarrow(narrow);
+    if (narrow) setSideOpen(false);
+  }
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -124,6 +147,7 @@ export default function App() {
       ),
     },
     ...(can(actor, 'reset_data') ? [{ id: 'reset', title: 'Reset all data', icon: ArrowCounterClockwiseIcon }] : []),
+    { id: 'signout', title: `Sign out ${session.name}`, icon: SignOutIcon },
   ];
 
   const entries = useMemo(
@@ -145,6 +169,10 @@ export default function App() {
 
   const onSelect = (id) => {
     if (id === 'theme') return setTheme(dark ? 'light' : 'dark');
+    if (id === 'signout') {
+      signOut();
+      return nav('/login', { replace: true });
+    }
     if (id === 'reset')
       return (
         window.confirm('Clear all projects, checklist progress and questionnaire responses stored in this browser?') &&

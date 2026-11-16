@@ -9,11 +9,15 @@
 
 - [x] Stage 2R, rework for prompt v2: no financial data anywhere, Admin and Engineer roles as data, Admin decides duplicates with a reason, spreadsheets refused as orders, stored data reset (ADR 0009)
 - [x] Stage 3, data layer: Overview, Components, checklist and questionnaires read through ProjectOneApi, legacy store and demo arrays removed, reset is Admin only (ADR 0010)
+- [x] Demo sign-in page: the app sits behind /login, demo account signs in as Admin, animated project steps panel, sign out in the sidebar (ADR 0011)
+- [x] React Router 6 to 7.18.5 (owner approved): clears the router security advisories and the future flag warnings; no code changes were needed (ADR 0012)
+- [x] Bugs fixed after a full browser test: the sign-in error now clears while retyping, primary buttons no longer show a dark left edge, the drawer closes when a window becomes narrow
 
 ## Waiting on the owner
 
 - [ ] Push `feature/stage-1-foundation` (Stages 1 and 2; all stages share this branch) and open the pull request; change the Vercel root directory to `frontend/` when it merges
-- [ ] Review and commit Stages 2R and 3 (changes are in the working tree)
+- [ ] Review the sign-in page in a browser at desktop and phone width in both themes (not checked by the builder)
+- [ ] Approve the Stage 4 plan in STAGE4_PLAN.md, then build it
 - [ ] Confirm the role matrix in src/domain/permissions.js (see OPEN_QUESTIONS.md)
 - [ ] Stage 4 questions: customer page, sites per customer, list filters and columns, project statuses, PrismSuite logo file
 
@@ -28,8 +32,7 @@
 - [ ] The owner supplied sample lookup tables (firewall, domain, NAS), a sample work schedule and a sample completion report; they are kept in the private samples folder for Stages 6, 7 and 10
 
 - [ ] ESLint 10 once `eslint-plugin-react` and `eslint-plugin-jsx-a11y` support it
-- [ ] `npm audit`: react-router 6 open redirect advisory (fix needs React Router 7, a major upgrade) and the esbuild dev-server advisory through Vite 5 (fix needs a newer Vite). Both need owner approval
-- [ ] React Router future flag warnings (`v7_startTransition`, `v7_relativeSplatPath`) appear in tests; decide with the router upgrade
+- [ ] `npm audit` (development tools only, not shipped in the app): the esbuild dev-server advisory through Vite 5 (fix needs a newer Vite), and advisories in the test runner's dependencies (`tinypool`, `@vitest/mocker`, rated up to critical; fix needs a newer Vitest) and `minimatch`. Each needs owner approval
 - [ ] On phones the checklist tables scroll sideways inside their cards; a stacked row layout belongs with the real checklist stage
 - [ ] The overview topology diagram is small at 360 px; revisit with the dashboard work
 - [ ] The spacing scale has a step for nearly every value in use; reducing it would change the look and needs an owner decision

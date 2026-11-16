@@ -1,0 +1,250 @@
+/* Sign-in page: form on the left, the animated project steps on the right. Built only from the theme tokens. */
+@layer base {
+  .login {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+
+  .login-main {
+    display: flex;
+    align-items: center;
+    padding: var(--space-40) var(--space-72);
+  }
+  .login-form-wrap {
+    width: 100%;
+    max-width: 430px;
+  }
+  .login-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-10);
+    margin-bottom: var(--space-48);
+    font: var(--fw-semibold) var(--fs-brand) var(--display);
+    color: var(--ink);
+  }
+  .login-brand img {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--rad-sm);
+  }
+  .login-title {
+    margin: 0;
+    font: var(--fw-medium) var(--fs-h1) var(--display);
+    letter-spacing: var(--tracking-heading);
+    color: var(--ink);
+  }
+  .login-sub {
+    margin: var(--space-6) 0 var(--space-30);
+    color: var(--mut);
+  }
+  .login-form {
+    display: grid;
+    gap: var(--space-18);
+  }
+  .login-form .field .input {
+    padding: var(--space-10) var(--space-14);
+  }
+  .login-password {
+    position: relative;
+  }
+  .login-password .input {
+    padding-right: var(--space-40);
+  }
+  .login-eye {
+    position: absolute;
+    right: var(--space-8);
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--rad-full);
+    background: none;
+    color: var(--mut);
+  }
+  .login-eye:hover {
+    color: var(--ink);
+    background: var(--hover);
+  }
+  .login-submit {
+    justify-content: center;
+    width: 100%;
+    padding-block: var(--space-12);
+    margin-top: var(--space-4);
+  }
+
+  .login-demo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    margin-top: var(--space-22);
+    padding: var(--space-10) var(--space-14);
+    border: 1px dashed var(--line-2);
+    border-radius: var(--rad-md);
+    font-size: var(--fs-small);
+    color: var(--mut);
+  }
+  .login-demo div {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .login-demo b {
+    color: var(--ink);
+    font-weight: var(--fw-semibold);
+  }
+  .login-foot {
+    margin: var(--space-18) 0 0;
+    color: var(--mut);
+    font-size: var(--fs-small);
+  }
+
+  /* right side: a quiet panel with a dot grid, holding the steps card */
+  .login-aside {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-40);
+    background-color: color-mix(in srgb, var(--sheet) 22%, transparent);
+    background-image: radial-gradient(var(--line-2) 1px, transparent 1px);
+    background-size: 22px 22px;
+    border-left: 1px solid var(--line);
+  }
+
+  .steps-card {
+    width: 100%;
+    max-width: 450px;
+    padding: var(--space-34) var(--space-36);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--rad-sheet);
+    background: var(--card);
+    box-shadow: var(--rim), var(--shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+  .steps-eyebrow {
+    margin: 0 0 var(--space-26);
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--tracking-title);
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .steps-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .steps-item {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: var(--space-14);
+  }
+  .steps-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .steps-dot {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    margin-top: var(--space-4);
+    border-radius: var(--rad-full);
+    border: 2px solid var(--line-2);
+    background: transparent;
+    transition:
+      background var(--dur-base) var(--ease-out),
+      border-color var(--dur-base) var(--ease-out),
+      box-shadow var(--dur-base) var(--ease-out);
+  }
+  .steps-line {
+    flex: 1;
+    width: 2px;
+    min-height: var(--space-30);
+    margin: var(--space-4) 0;
+    border-radius: var(--rad-full);
+    background:
+      linear-gradient(var(--lime), var(--lime)) top / 100% 0 no-repeat,
+      var(--line-2);
+    transition: background-size var(--dur-slow) var(--ease-out);
+  }
+  .steps-body {
+    display: grid;
+    gap: var(--space-4);
+    padding-bottom: var(--space-24);
+  }
+  .steps-body b {
+    font: var(--fw-semibold) var(--fs-tile) var(--display);
+    color: var(--ink);
+    transition: color var(--dur-base);
+  }
+  .steps-body small {
+    font-size: var(--fs-small);
+    line-height: var(--lh-snug);
+    color: var(--mut);
+    max-width: 30ch;
+    transition: color var(--dur-base);
+  }
+  .steps-item:last-child .steps-body {
+    padding-bottom: 0;
+  }
+
+  .steps-item.is-done .steps-dot {
+    background: var(--lime);
+    border-color: var(--lime);
+  }
+  .steps-item.is-done .steps-line {
+    background-size:
+      100% 100%,
+      auto;
+  }
+  .steps-item.is-current .steps-dot {
+    background: var(--lime);
+    border-color: var(--lime);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--lime) 28%, transparent);
+    animation: steps-pulse 1.6s var(--ease-out) infinite;
+  }
+  .steps-item.is-pending .steps-body b,
+  .steps-item.is-pending .steps-body small {
+    color: var(--faint);
+    opacity: 0.6;
+  }
+
+  @keyframes steps-pulse {
+    50% {
+      box-shadow: 0 0 0 9px color-mix(in srgb, var(--lime) 8%, transparent);
+    }
+  }
+
+  /* phones and narrow windows: the form first, the steps underneath in a compact card */
+  @media (max-width: 860px) {
+    .login {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .login-main {
+      padding: var(--space-36) var(--gutter);
+    }
+    .login-form-wrap {
+      margin-inline: auto;
+    }
+    .login-brand {
+      margin-bottom: var(--space-30);
+    }
+    .login-aside {
+      padding: var(--space-24) var(--gutter) var(--space-40);
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+    .steps-card {
+      padding: var(--space-24);
+    }
+    .steps-body {
+      padding-bottom: var(--space-16);
+    }
+  }
+}
