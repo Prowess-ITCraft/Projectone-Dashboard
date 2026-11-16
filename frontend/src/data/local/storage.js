@@ -4,7 +4,19 @@ import { openDB } from 'idb';
   Key-value storage for the local adapter. Two backends with one shape: IndexedDB in the browser, and a memory
   store used by tests and when the browser blocks IndexedDB (private windows). Business logic never touches either.
 */
-export const STORES = ['customers', 'projects', 'documents', 'lines', 'modules', 'entitlements', 'files', 'rules', 'meta', 'audit'];
+export const STORES = [
+  'customers',
+  'projects',
+  'documents',
+  'lines',
+  'modules',
+  'entitlements',
+  'files',
+  'rules',
+  'meta',
+  'audit',
+  'checklist',
+];
 
 const copy = (value) => (value === undefined || value instanceof Blob ? value : structuredClone(value));
 
@@ -31,8 +43,13 @@ export function createMemoryStorage() {
 }
 
 export function createIdbStorage(name = 'projectone') {
-  const db = openDB(name, 1, {
+  /*
+    Version 2 removed financial fields and replaced the roles. The stored data was development and demo data only, so an
+    older database is emptied rather than converted.
+  */
+  const db = openDB(name, 2, {
     upgrade(database) {
+      [...database.objectStoreNames].forEach((s) => database.deleteObjectStore(s));
       STORES.forEach((s) => database.createObjectStore(s));
     },
   });

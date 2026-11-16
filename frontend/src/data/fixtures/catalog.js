@@ -353,4 +353,4 @@ const QUESTIONNAIRES = {
     demo: [],
   },
 };
-export { ITEMS, PRODUCT_LIST, QUESTIONNAIRES };
+export const catalog = { items: ITEMS, productList: PRODUCT_LIST, questionnaires: QUESTIONNAIRES };

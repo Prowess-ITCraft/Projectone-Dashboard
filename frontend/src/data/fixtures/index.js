@@ -1,6 +1,7 @@
 import pi from './pi_sample.json';
 import po from './po_sample.json';
 import prismsuite from './prismsuite_sample.json';
+import { catalog } from './catalog';
 
 /*
   Sample documents. The JSON next to this file is anonymised (invented customer, GSTIN, address and contact; same
@@ -36,6 +37,8 @@ export function createFixtures({ allowPrivate = true } = {}) {
     return ANONYMISED[type] ?? null;
   };
   return {
+    /* Component catalogue, checklist templates and questionnaire definitions */
+    catalog,
     /* "pi", "po" or "prismsuite" when the bytes are one of the known sample files, else null */
     lookupByHash: (hash) => SAMPLE_HASHES[hash] ?? null,
     load,

@@ -13,8 +13,6 @@
       "module": "eps",
       "title": "System Sanitization Services",
       "qty": 11,
-      "rate": 500,
-      "amount": 5500,
       "per_endpoint": true
     },
     {
@@ -22,9 +20,7 @@
       "kind": "subscription",
       "module": "eps",
       "title": "Sophos Intercept XDR (1 User / 3 Years)",
-      "qty": 11,
-      "rate": 3498,
-      "amount": 38478
+      "qty": 11
     },
     {
       "no": 3,
@@ -32,18 +28,14 @@
       "module": "eps",
       "paired_to": 2,
       "title": "EPS Implementation, Security & Configuration + 1 Year Support",
-      "qty": 1,
-      "rate": 6000,
-      "amount": 6000
+      "qty": 1
     },
     {
       "no": 4,
       "kind": "product",
       "module": "network_router",
       "title": "Asus RT-AX53U AX1800 WiFi 6 Router",
-      "qty": 1,
-      "rate": 29318,
-      "amount": 29318
+      "qty": 1
     },
     {
       "no": 5,
@@ -52,14 +44,7 @@
       "paired_to": 4,
       "unpaired_candidate": true,
       "title": "Installation & Configuration Charges (1 Year Support)",
-      "qty": 1,
-      "rate": 1500,
-      "amount": 1500
+      "qty": 1
     }
-  ],
-  "totals": {
-    "subtotal": 80796,
-    "gst_18": 14543,
-    "grand_total": 95339
-  }
+  ]
 }
