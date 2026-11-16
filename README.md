@@ -15,7 +15,7 @@ frontend/          React + Vite app
   src/domain/      pure rules and types (money, classification, validation, stages, roles)
   src/data/        the data interface, the local adapter and the anonymised sample fixtures
   src/lib/         small helpers (CSV export, time, class names, media queries)
-backend/           reserved for the API (not started)
+backend/           the API (FastAPI and PostgreSQL), stages B0 and B1 built; see backend/README.md
 docker-compose.yml local development
 ```
 
