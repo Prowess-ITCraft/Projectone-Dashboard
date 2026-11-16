@@ -1,3 +1,5 @@
+import { lockedByStatus } from './projects';
+
 /*
   The project stages from the workflow (context pack 02), in strict order. A stage unlocks only when the one before
   it is done. Nothing is shown done unless a person recorded it. `built` says whether the app has screens for it yet.
@@ -94,7 +96,12 @@ export function computeTracker({ project, documents, lines }) {
     previousDone = false;
     return { ...stage, state: 'locked', reason };
   });
-  return result;
+
+  // A project on hold, cancelled or closed keeps what was done; the stage it stopped at says why nothing moves
+  const paused = lockedByStatus(project);
+  if (!paused) return result;
+  const at = result.findIndex((s) => s.state !== 'done');
+  return result.map((s, i) => (i === at ? { ...s, state: 'blocked', reason: paused } : s));
 }
 
 /* The first stage that is not done, for "where is this project" labels */
