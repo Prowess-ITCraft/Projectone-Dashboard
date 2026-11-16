@@ -15,6 +15,7 @@ import './styles/components.css';
 import './styles/pages.css';
 import './styles/projects.css';
 import './styles/auth.css';
+import './styles/customers.css';
 
 function start() {
   const api = createLocalApi({ storage: createBrowserStorage(), fixtures: createFixtures() });

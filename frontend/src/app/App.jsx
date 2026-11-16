@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Route, Routes, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  AddressBookIcon,
   ArrowCounterClockwiseIcon,
   SignOutIcon,
   DatabaseIcon,
@@ -26,14 +27,18 @@ import { can } from '@/domain/permissions';
 import { LoadingState } from '@/components';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import logo from '@/assets/projectone-logo.png';
-import Dashboard from '@/pages/Dashboard.jsx';
-import Components from '@/pages/Components.jsx';
-import Detail from '@/pages/Detail.jsx';
-import Questionnaire from '@/pages/Questionnaire.jsx';
-import ProjectsPage from '@/features/projects/ProjectsPage.jsx';
-import NewProjectPage from '@/features/projects/NewProjectPage.jsx';
-import ProjectPage from '@/features/projects/ProjectPage.jsx';
-import LoginPage from '@/features/auth/LoginPage.jsx';
+
+// Each page is its own file in the build, so the sign-in page and every screen load only what they need
+const Dashboard = lazy(() => import('@/pages/Dashboard.jsx'));
+const Components = lazy(() => import('@/pages/Components.jsx'));
+const Detail = lazy(() => import('@/pages/Detail.jsx'));
+const Questionnaire = lazy(() => import('@/pages/Questionnaire.jsx'));
+const ProjectsPage = lazy(() => import('@/features/projects/ProjectsPage.jsx'));
+const NewProjectPage = lazy(() => import('@/features/projects/NewProjectPage.jsx'));
+const ProjectPage = lazy(() => import('@/features/projects/ProjectPage.jsx'));
+const LoginPage = lazy(() => import('@/features/auth/LoginPage.jsx'));
+const CustomersPage = lazy(() => import('@/features/customers/CustomersPage.jsx'));
+const CustomerPage = lazy(() => import('@/features/customers/CustomerPage.jsx'));
 import { ActorPicker, useActor } from './actor';
 import { useSession } from './session';
 import { SidebarNav } from './Sidebar';
@@ -66,6 +71,8 @@ function titleFor(path, catalog) {
   if (path === '/projects') return 'Projects';
   if (path === '/projects/new') return 'New project';
   if (path.startsWith('/projects/')) return 'Project';
+  if (path === '/customers') return 'Customers';
+  if (path.startsWith('/customers/')) return 'Customer';
   if (path.startsWith('/q/')) return catalog?.questionnaires[path.split('/')[2]]?.title ?? 'Questionnaire';
   if (path.startsWith('/c/')) return catalog?.items.find((i) => i.id === path.split('/')[2])?.name ?? 'Component';
   return '';
@@ -79,7 +86,13 @@ export default function App() {
   const loc = useLocation();
   const { session } = useSession();
   if (loc.pathname === '/login') {
-    return session ? <Navigate to={loc.state?.from ?? '/dashboard'} replace /> : <LoginPage />;
+    return session ? (
+      <Navigate to={loc.state?.from ?? '/dashboard'} replace />
+    ) : (
+      <Suspense fallback={<LoadingState label="Opening" />}>
+        <LoginPage />
+      </Suspense>
+    );
   }
   if (!session) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   return <Shell />;
@@ -154,6 +167,7 @@ function Shell() {
     () => [
       { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFourIcon },
       { id: '/projects', title: 'Projects', hint: 'List', icon: FolderSimpleIcon },
+      { id: '/customers', title: 'Customers', hint: 'List', icon: AddressBookIcon },
       { id: '/components', title: 'All components', hint: 'List', icon: GridFourIcon },
       { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrivesIcon },
       { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: WallIcon },
@@ -224,16 +238,20 @@ function Shell() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
           >
-            <Routes location={loc}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/projects/new" element={<NewProjectPage />} />
-              <Route path="/projects/:id/*" element={<ProjectPage />} />
-              <Route path="/components" element={<Components />} />
-              <Route path="/c/:id/:mode?" element={<Detail />} />
-              <Route path="/q/:kind" element={<QRoute catalog={catalog} />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <Suspense fallback={<LoadingState label="Opening the page" />}>
+              <Routes location={loc}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/projects/new" element={<NewProjectPage />} />
+                <Route path="/projects/:id/*" element={<ProjectPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/customers/:id" element={<CustomerPage />} />
+                <Route path="/components" element={<Components />} />
+                <Route path="/c/:id/:mode?" element={<Detail />} />
+                <Route path="/q/:kind" element={<QRoute catalog={catalog} />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Suspense>
           </motion.div>
         </div>
       </main>
