@@ -1,7 +1,8 @@
 import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
-import { ErrorState, Icon, LoadingState, PageHead, TabNav } from '@/components';
+import { ErrorState, Icon, LoadingState, PageHead, StatusBadge, TabNav } from '@/components';
 import { useApiQuery } from '@/data/api';
-import { entryPathLabel } from '@/domain/projects';
+import { entryPathLabel, PROJECT_STATUS, statusOf } from '@/domain/projects';
+import { PrismSuiteBadge } from '@/features/customers/PrismSuiteBadge';
 import { formatDate } from './labels';
 import OverviewTab from './OverviewTab';
 import DocumentsTab from './DocumentsTab';
@@ -18,7 +19,8 @@ export default function ProjectPage() {
     return <ErrorState title="This project could not be opened" message={error.message} onRetry={reload} />;
   }
 
-  const { project, customer, documents, lines, modules } = data;
+  const { project, customer, documents, lines, modules, audited } = data;
+  const status = PROJECT_STATUS[statusOf(project)];
   const base = `/projects/${project.id}`;
   const tabs = [
     { to: base, label: 'Overview', end: true },
@@ -37,7 +39,12 @@ export default function ProjectPage() {
       <PageHead
         title={customer?.name ?? 'Project'}
         sub={`${project.number}, ${project.entryPath ? entryPathLabel(project.entryPath) : 'entry path needed'}, created ${formatDate(new Date(project.createdAt).toISOString())}`}
-      />
+      >
+        <div className="head-badges">
+          <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+          {audited && <PrismSuiteBadge />}
+        </div>
+      </PageHead>
       <TabNav items={tabs} label="Project sections" />
 
       <Routes>

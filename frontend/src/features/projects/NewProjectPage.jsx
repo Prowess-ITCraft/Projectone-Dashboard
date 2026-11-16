@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, FormField, Icon, Notice, PageHead, SegmentedControl } from '@/components';
 import { useActor } from '@/app/actor';
-import { useApi } from '@/data/api';
+import { useApi, useApiQuery } from '@/data/api';
+import { isValidEmail } from '@/domain/customers';
 import { isValidGstin } from '@/domain/gstin';
 import { ENTRY_PATHS } from '@/domain/projects';
 import { can } from '@/domain/permissions';
 import { useAction } from '@/lib/useAction';
+import { SitePicker } from './SitePicker';
 
 const EMPTY = { name: '', gstin: '', address: '', contact: '', email: '' };
 
@@ -20,7 +22,8 @@ export default function NewProjectPage() {
   const [matches, setMatches] = useState([]);
   const [entryPath, setEntryPath] = useState('');
   const [purpose, setPurpose] = useState('');
-  const [location, setLocation] = useState('');
+  const [siteIds, setSiteIds] = useState([]);
+  const [siteDrafts, setSiteDrafts] = useState([]);
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
@@ -32,6 +35,14 @@ export default function NewProjectPage() {
     };
   }, [api, chosen, customer.gstin, customer.name]);
 
+  // an existing customer brings its sites to choose from; switching customer clears the choice
+  const sitesQuery = useApiQuery((a) => (chosen ? a.listSites(chosen.id) : Promise.resolve([])), [chosen?.id]);
+  const customerSites = chosen ? (sitesQuery.data ?? []) : [];
+  const pickCustomer = (next) => {
+    setChosen(next);
+    setSiteIds([]);
+  };
+
   const set = (key) => (e) => setCustomer({ ...customer, [key]: e.target.value });
   const errors = {
     name: !chosen && !customer.name.trim() ? 'Enter the customer name.' : undefined,
@@ -39,6 +50,7 @@ export default function NewProjectPage() {
       !chosen && customer.gstin.trim() && !isValidGstin(customer.gstin)
         ? 'This GSTIN is not in a valid format (15 characters).'
         : undefined,
+    email: !chosen && customer.email.trim() && !isValidEmail(customer.email) ? 'This email address is not in a valid format.' : undefined,
     entryPath: !entryPath ? 'Choose how this work came about.' : undefined,
   };
   const invalid = Object.values(errors).some(Boolean);
@@ -48,7 +60,14 @@ export default function NewProjectPage() {
     setTouched(true);
     if (invalid) return;
     const project = await run(() =>
-      api.createProject({ customer: chosen ? { id: chosen.id } : customer, entryPath, purpose, location, actor }),
+      api.createProject({
+        customer: chosen ? { id: chosen.id } : customer,
+        entryPath,
+        purpose,
+        siteIds: chosen ? siteIds : [],
+        newSites: siteDrafts,
+        actor,
+      }),
     );
     if (project) nav(`/projects/${project.id}/documents`);
   };
@@ -72,7 +91,7 @@ export default function NewProjectPage() {
               tone="info"
               title={`${chosen.name} (${chosen.number})`}
               actions={
-                <button type="button" className="btn ghost sm" onClick={() => setChosen(null)}>
+                <button type="button" className="btn ghost sm" onClick={() => pickCustomer(null)}>
                   Use a different customer
                 </button>
               }
@@ -98,7 +117,7 @@ export default function NewProjectPage() {
                 <FormField label="Contact person">
                   {(f) => <input {...f.control} className="input" value={customer.contact} onChange={set('contact')} />}
                 </FormField>
-                <FormField label="Contact email">
+                <FormField label="Contact email" error={touched ? errors.email : undefined}>
                   {(f) => <input {...f.control} type="email" className="input" value={customer.email} onChange={set('email')} />}
                 </FormField>
               </div>
@@ -108,7 +127,7 @@ export default function NewProjectPage() {
                   tone="warning"
                   title={reason === 'gstin' ? 'This GSTIN belongs to an existing customer' : 'A customer with a similar name exists'}
                   actions={
-                    <button type="button" className="btn sm" onClick={() => setChosen(c)}>
+                    <button type="button" className="btn sm" onClick={() => pickCustomer(c)}>
                       Use {c.number}
                     </button>
                   }
@@ -143,10 +162,15 @@ export default function NewProjectPage() {
                 <textarea {...f.control} className="input textarea" rows={3} value={purpose} onChange={(e) => setPurpose(e.target.value)} />
               )}
             </FormField>
-            <FormField label="Site or location">
-              {(f) => <input {...f.control} className="input" value={location} onChange={(e) => setLocation(e.target.value)} />}
-            </FormField>
           </div>
+          <SitePicker
+            legend="Sites this project covers"
+            sites={customerSites}
+            selected={siteIds}
+            onSelected={setSiteIds}
+            drafts={siteDrafts}
+            onDrafts={setSiteDrafts}
+          />
         </Card>
 
         {error && <Notice tone="error">{error}</Notice>}
