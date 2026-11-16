@@ -1,7 +1,7 @@
 # 0007. A single data interface with a local adapter
 
 Date: 2026-11-16
-Status: Accepted
+Status: Accepted. The money rule is superseded by 0009 (no financial data).
 
 ## Context
 
