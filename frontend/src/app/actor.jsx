@@ -4,11 +4,11 @@ import { Dialog, FormField, SegmentedControl } from '@/components';
 import { actorLabel, ROLES } from '@/domain/permissions';
 
 /*
-  Temporary "acting as" role until real sign-in exists. It decides who may see money, confirm and reopen, and it is
-  recorded with every confirmation and change. Kept in this browser only.
+  Temporary "acting as" role until real sign-in exists (development only). It decides who may confirm, reopen and decide
+  duplicates, and it is recorded with every confirmation and change. Kept in this browser only.
 */
 const KEY = 'projectone.actor';
-const DEFAULT_ACTOR = { role: 'project_lead', name: '' };
+const DEFAULT_ACTOR = { role: 'admin', name: '' };
 
 function load() {
   try {

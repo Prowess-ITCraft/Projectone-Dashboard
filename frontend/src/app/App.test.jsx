@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import App from './App.jsx';
-import { INTAKE, makeApi, renderApp } from '@/test/providers.jsx';
+import { ENGINEER, makeApi, renderApp } from '@/test/providers.jsx';
 
 const renderAt = (path) => renderApp(<App />, { path });
 
@@ -70,7 +70,7 @@ describe('App shell on a phone', () => {
 describe('project tabs', () => {
   it('switches between the tabs of a project without losing the page', async () => {
     const api = makeApi();
-    const project = await api.createProject({ customer: { name: 'Tab Customer' }, entryPath: 'post_audit', actor: INTAKE });
+    const project = await api.createProject({ customer: { name: 'Tab Customer' }, entryPath: 'post_audit', actor: ENGINEER });
     renderApp(<App />, { path: `/projects/${project.id}/documents`, api });
     await screen.findByRole('heading', { level: 1, name: 'Tab Customer' });
     for (const [tab, text] of [
