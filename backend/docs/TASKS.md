@@ -7,14 +7,14 @@
 
 ## Waiting on the owner
 
-- [ ] Review B0 and B1 (uncommitted in the working tree)
+- [ ] Review B0 and B1 (committed and pushed on feature/stage-1-foundation)
 - [ ] Confirm the Admin and Engineer matrix
 - [ ] Decide audit retention, and whether the development header stays as the stand-in until sign-in (B10)
 - [ ] Start Docker Desktop once to check `docker compose up api` (not verified: Docker was not running)
 
 ## Next
 
-- [ ] B2 customers, sites, projects and the stage tracker, after the frontend Stage 4 questions are answered
+- [ ] B2 customers, sites, projects, project status and the stage tracker (frontend Stage 4 is built; mirror ADR 0013, including a migration adding `set_project_status` for Admin)
 - [ ] B3 intake, with the object store added to Compose
 
 ## Known follow-ups

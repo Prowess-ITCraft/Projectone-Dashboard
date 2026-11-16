@@ -34,6 +34,7 @@ Short facts a new contributor needs before changing anything. Rules for developm
 - Projects: list, new project, and a project page with overview (stage tracker, activity), documents (upload), order lines (review and classify), coverage and modules. The temporary "acting as" role is chosen in the top bar.
 - Screens: Overview, Components, component checklist, two questionnaires, on the shared components and tokens. They read through `ProjectOneApi` (ADR 0010): the catalogue is in `src/data/fixtures/catalog.js`, progress and responses are in IndexedDB.
 - The app sits behind a demo sign-in at `/login` (ADR 0011): one demo account, checked in the browser, signs in as Admin until Sign out. Real sign-in comes with the backend.
+- Customers have a list and a page; a project covers zero or more of its customer's sites; project status (in progress, on hold, cancelled, closed) is set by an Admin with a reason and locks work while not in progress (ADR 0013).
 - No financial data anywhere, and two roles, Admin and Engineer (ADR 0009). An Admin decides duplicate documents, with a reason.
 - Field devices to target: Android phones with Chrome, 360 px wide.
 - Priority order for the flow: intake, then modules, then checklist.
