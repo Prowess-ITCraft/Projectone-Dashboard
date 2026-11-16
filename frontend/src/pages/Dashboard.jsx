@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { useStore, itemStats, totals, catStats, tasksFor } from '../store.jsx';
-import { ITEMS } from '../data.js';
-import { Card, CountUp, EmptyState, PageHead } from '@/components';
+import { useChecklist } from '@/data/checklist';
+import { itemStats, totals, catStats, tasksFor } from '@/domain/checklist';
+import { Card, CountUp, EmptyState, ErrorState, LoadingState, PageHead } from '@/components';
 import { Stacked, BarList, Topology, TONE } from '@/components/charts';
 import { ago } from '@/lib/time';
 
@@ -11,9 +11,15 @@ const rise = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transitio
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 
 export default function Dashboard() {
-  const { state } = useStore();
-  const t = useMemo(() => totals(state), [state]);
-  const cats = useMemo(() => catStats(state), [state]);
+  const data = useChecklist();
+  if (!data.ready) return data.error ? <ErrorState message={data.error} /> : <LoadingState label="Loading the overview" />;
+  return <Overview data={data} />;
+}
+
+function Overview({ data }) {
+  const { state, items: ITEMS } = data;
+  const t = useMemo(() => totals(state, ITEMS), [state, ITEMS]);
+  const cats = useMemo(() => catStats(state, ITEMS), [state, ITEMS]);
   const infra = ITEMS.filter((i) => i.grp === 'infra');
   const progress = Object.fromEntries(infra.map((i) => [i.id, itemStats(state, i).pct]));
   const phases = ['Installation', 'Configuration'].map((ph) => {

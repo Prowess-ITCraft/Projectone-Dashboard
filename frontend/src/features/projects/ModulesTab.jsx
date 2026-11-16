@@ -98,7 +98,7 @@ export default function ModulesTab({ snapshot }) {
   return (
     <div className="stack">
       {error && <Notice tone="error">{error}</Notice>}
-      {!canDeliver && <Notice tone="info">Only the project lead can record delivery.</Notice>}
+      {!canDeliver && <Notice tone="info">Only an Admin can record delivery.</Notice>}
       <div className="module-grid">
         {modules.map((m) => (
           <ModuleCard

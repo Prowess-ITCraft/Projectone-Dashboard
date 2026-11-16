@@ -6,7 +6,6 @@ import { ApiProvider } from './data/api.jsx';
 import { createFixtures } from './data/fixtures';
 import { createLocalApi } from './data/local/localApi.js';
 import { createBrowserStorage } from './data/local/storage.js';
-import { StoreProvider } from './store.jsx';
 import './styles/tailwind.css';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -21,9 +20,7 @@ function start() {
     <HashRouter>
       <ApiProvider api={api}>
         <ActorProvider>
-          <StoreProvider>
-            <App />
-          </StoreProvider>
+          <App />
         </ActorProvider>
       </ApiProvider>
     </HashRouter>,

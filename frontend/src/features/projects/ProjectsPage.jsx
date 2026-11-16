@@ -130,10 +130,10 @@ export default function ProjectsPage() {
           >
             Load sample projects
           </button>
-          <button type="button" className="btn ghost sm" disabled={!can(actor, 'reopen')} onClick={() => setConfirmReset(true)}>
+          <button type="button" className="btn ghost sm" disabled={!can(actor, 'reset_data')} onClick={() => setConfirmReset(true)}>
             Reset project data
           </button>
-          {!can(actor, 'reopen') && <small>Only the project lead can reset.</small>}
+          {!can(actor, 'reset_data') && <small>Only an Admin can reset.</small>}
         </div>
       </Card>
 

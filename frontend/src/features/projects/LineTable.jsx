@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { DataTable, Icon, StatusBadge } from '@/components';
 import { MODULE_TYPES, moduleLabel } from '@/domain/modules';
-import { formatINR, paiseToInput, toPaise } from '@/domain/money';
 import { KIND_LABELS, KIND_OPTIONS } from './labels';
 
 const truncate = (text, n = 48) => (text.length > n ? `${text.slice(0, n - 1)}…` : text);
@@ -32,14 +31,12 @@ function Cell({ value, onCommit, label, disabled, className = 'input', inputMode
 }
 
 /*
-  The parsed lines of one document, editable until the intake review is confirmed (text, quantity, money) and until the
-  classification is confirmed (kind, module, pairing). Changing a classification asks for a reason first; money columns
-  appear only for roles that may see money.
+  The parsed lines of one document, editable until the intake review is confirmed (text, quantity) and until the
+  classification is confirmed (kind, module, pairing). Changing a classification asks for a reason first.
 */
 export function LineTable({
   lines,
   products,
-  showMoney,
   textLocked,
   classLocked,
   canEdit,
@@ -54,7 +51,6 @@ export function LineTable({
     'No',
     'Description',
     'Qty',
-    ...(showMoney ? ['Rate', 'Amount'] : []),
     'Kind',
     'Module and pairing',
     <span key="a" className="sr-only">
@@ -64,16 +60,6 @@ export function LineTable({
   const pairedLine = (line) => products.find((p) => p.id === line.pairedToLineId);
   const textOff = textLocked || !canEdit;
   const classOff = classLocked || !canClassify;
-
-  const commitMoney = (line, field, text) => {
-    const paise = text.trim() === '' ? null : toPaise(text);
-    if (text.trim() !== '' && paise === null) {
-      onError(`Line ${line.no}: that is not a valid amount.`);
-      return false;
-    }
-    onField(line, { [field]: paise });
-    return true;
-  };
 
   return (
     <DataTable columns={columns} isEmpty={!lines.length} empty="This document has no lines." className="lines">
@@ -124,31 +110,6 @@ export function LineTable({
                 }}
               />
             </td>
-            {showMoney && (
-              <>
-                <td>
-                  <Cell
-                    value={paiseToInput(line.ratePaise)}
-                    label={`Rate of line ${line.no}`}
-                    className="input money"
-                    inputMode="decimal"
-                    disabled={textOff}
-                    onCommit={(t) => commitMoney(line, 'ratePaise', t)}
-                  />
-                </td>
-                <td>
-                  <Cell
-                    value={paiseToInput(line.amountPaise)}
-                    label={`Amount of line ${line.no}`}
-                    className="input money"
-                    inputMode="decimal"
-                    disabled={textOff}
-                    onCommit={(t) => commitMoney(line, 'amountPaise', t)}
-                  />
-                  {line.amountPaise != null && <small className="num formatted">{formatINR(line.amountPaise)}</small>}
-                </td>
-              </>
-            )}
             <td>
               {classOff ? (
                 <StatusBadge tone={line.kind === 'unknown' ? 'warning' : 'neutral'}>{KIND_LABELS[line.kind]}</StatusBadge>

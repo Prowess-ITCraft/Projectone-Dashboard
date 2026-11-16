@@ -4,8 +4,9 @@ import { sha256Hex } from '@/lib/sha256';
 import { createLocalApi } from './localApi';
 import { createMemoryStorage } from './storage';
 
-const lead = { role: 'project_lead', name: 'Asha' };
-const intake = { role: 'intake_coordinator', name: 'Ravi' };
+const lead = { role: 'admin', name: 'Asha' };
+const intake = { role: 'engineer', name: 'Ravi' };
+const because = 'Checked both versions';
 const hashOf = (type) => Object.keys(SAMPLE_HASHES).find((h) => SAMPLE_HASHES[h] === type);
 
 /* A file whose bytes hash to one of the known sample fingerprints, so the fixture lookup treats it as that sample */
@@ -108,10 +109,10 @@ describe('uploading documents', () => {
     expect((await api.getProject(p.id)).lines).toEqual([]);
   });
 
-  it('refuses files that are not PDFs or are too large, and unknown document types', async () => {
+  it('refuses unsupported file types, files that are too large, and unknown document types', async () => {
     const p = await newProject();
-    await expect(api.addDocument({ projectId: p.id, type: 'pi', file: new File(['x'], 'a.docx'), actor: intake })).rejects.toThrow(
-      'Only PDF',
+    await expect(api.addDocument({ projectId: p.id, type: 'pi', file: new File(['x'], 'a.png'), actor: intake })).rejects.toThrow(
+      'Only PDF, Word (.docx) or Excel (.xlsx)',
     );
     const huge = new File(['x'], 'big.pdf', { type: 'application/pdf' });
     Object.defineProperty(huge, 'size', { value: 26 * 1024 * 1024 });
@@ -128,13 +129,12 @@ describe('uploading documents', () => {
       number: 'PI/1',
       date: '2026-11-01',
       billTo: { name: 'Test Customer', gstin: '', address: '', contact: '', email: '' },
-      totals: null,
     };
     const { duplicateOf } = await api.saveDocumentDetails(document.id, {
       header,
       lines: [
-        { no: 1, title: 'QNAP TS-464 NAS', qty: 1, ratePaise: 5000000, amountPaise: 5000000, scopeItems: [] },
-        { no: 2, title: 'QNAP Setup and installation', qty: 1, ratePaise: 100000, amountPaise: 100000, scopeItems: ['Share folders'] },
+        { no: 1, title: 'QNAP TS-464 NAS', qty: 1, scopeItems: [] },
+        { no: 2, title: 'QNAP Setup and installation', qty: 1, scopeItems: ['Share folders'] },
       ],
       actor: intake,
     });
@@ -167,7 +167,7 @@ describe('duplicate documents', () => {
     expect(second.document).toMatchObject({ active: false, pendingDuplicate: true });
     expect((await api.getProject(p.id)).lines).toHaveLength(10);
 
-    await api.resolveDuplicate(second.document.id, 'replace', { actor: intake });
+    await api.resolveDuplicate(second.document.id, 'replace', { actor: lead, reason: because });
     const { documents, lines } = await api.getProject(p.id);
     const old = documents.find((d) => d.id === first.document.id);
     expect(old).toMatchObject({ active: false, supersededBy: second.document.id });
@@ -181,7 +181,7 @@ describe('duplicate documents', () => {
     const p = await newProject();
     await api.addDocument({ projectId: p.id, type: 'pi', file: sampleFile('pi'), actor: intake });
     const dup = await api.addDocument({ projectId: p.id, type: 'pi', file: sampleFile('pi'), actor: intake });
-    await api.resolveDuplicate(dup.document.id, 'cancel', { actor: intake });
+    await api.resolveDuplicate(dup.document.id, 'cancel', { actor: lead, reason: because });
     const { documents, lines } = await api.getProject(p.id);
     expect(documents).toHaveLength(1);
     expect(lines).toHaveLength(10);
@@ -194,7 +194,7 @@ describe('duplicate documents', () => {
     const b = await newProject('new_infra', { name: 'Other' });
     await api.addDocument({ projectId: a.id, type: 'pi', file: sampleFile('pi'), actor: intake });
     const dup = await api.addDocument({ projectId: b.id, type: 'pi', file: sampleFile('pi'), actor: intake });
-    await expect(api.resolveDuplicate(dup.document.id, 'replace', { actor: intake })).rejects.toThrow('another project');
+    await expect(api.resolveDuplicate(dup.document.id, 'replace', { actor: lead, reason: because })).rejects.toThrow('another project');
   });
 
   it('resets the confirmations when a confirmed order is replaced', async () => {
@@ -215,14 +215,14 @@ describe('review, classification and modules', () => {
     return p;
   }
 
-  it('lets only the project lead confirm intake, and only when it is ready', async () => {
+  it('lets only the Admin confirm intake, and only when it is ready', async () => {
     const p = await newProject();
     await expect(api.confirmIntake(p.id, { actor: lead })).rejects.toThrow('Upload an order document');
     const q = await confirmedSample();
-    await expect(api.confirmIntake(q.id, { actor: intake })).rejects.toThrow('project lead');
+    await expect(api.confirmIntake(q.id, { actor: intake })).rejects.toThrow('Admin');
     await api.confirmIntake(q.id, { actor: lead });
     const { project, tracker } = await api.getProject(q.id);
-    expect(project.intake).toMatchObject({ by: 'Asha, Project lead' });
+    expect(project.intake).toMatchObject({ by: 'Asha, Admin' });
     expect(tracker.find((s) => s.id === 'intake').state).toBe('done');
   });
 
@@ -240,7 +240,7 @@ describe('review, classification and modules', () => {
     await api.confirmIntake(p.id, { actor: lead });
     await expect(api.updateLine(lines[0].id, { qty: 2 }, { actor: intake })).rejects.toThrow('Reopen');
     await expect(api.deleteLine(lines[0].id, { actor: intake })).rejects.toThrow('Reopen');
-    await expect(api.reopenIntake(p.id, { actor: intake, reason: 'x' })).rejects.toThrow('project lead');
+    await expect(api.reopenIntake(p.id, { actor: intake, reason: 'x' })).rejects.toThrow('Admin');
     await expect(api.reopenIntake(p.id, { actor: lead, reason: ' ' })).rejects.toThrow('reason');
     await api.reopenIntake(p.id, { actor: lead, reason: 'Quantity was wrong' });
     expect((await api.getProject(p.id)).project.intake).toBeNull();
@@ -263,7 +263,7 @@ describe('review, classification and modules', () => {
     );
     const after = (await api.getProject(p.id)).lines.find((l) => l.id === unnamed.id);
     expect(after).toMatchObject({ moduleType: 'network_router', classificationSource: 'manual', suggestion: null });
-    expect(after.reviewedBy.by).toBe('Ravi, Intake coordinator');
+    expect(after.reviewedBy.by).toBe('Ravi, Engineer');
     const entry = (await api.listAudit(p.id)).find((a) => a.action === 'line_classified');
     expect(entry).toMatchObject({
       reason: 'Same visit as the router install',
@@ -317,13 +317,13 @@ describe('review, classification and modules', () => {
     expect([modules.length, entitlements.length, project.classify]).toEqual([0, 0, null]);
   });
 
-  it('records delivery only for the project lead and needs a status', async () => {
+  it('records delivery only for the Admin and needs a status', async () => {
     const p = await confirmedSample();
     await api.confirmIntake(p.id, { actor: lead });
     await api.confirmClassification(p.id, { actor: intake });
     const [m] = (await api.getProject(p.id)).modules;
     await expect(api.setModuleDelivery(m.id, { status: 'delivered', deliveredOn: '2026-11-20' }, { actor: intake })).rejects.toThrow(
-      'project lead',
+      'Admin',
     );
     await expect(api.setModuleDelivery(m.id, { status: 'lost' }, { actor: lead })).rejects.toThrow('delivery status');
     await api.setModuleDelivery(m.id, { status: 'delivered', deliveredOn: '2026-11-20' }, { actor: lead });
@@ -366,9 +366,9 @@ describe('sample projects and reset', () => {
     expect(withReport.customer.name).toBe('M/S Sample Industries');
   });
 
-  it('wipes everything on reset, for the project lead only', async () => {
+  it('wipes everything on reset, for the Admin only', async () => {
     await api.loadSampleProjects({ actor: intake });
-    await expect(api.resetAll({ actor: intake })).rejects.toThrow('project lead');
+    await expect(api.resetAll({ actor: intake })).rejects.toThrow('Admin');
     await api.resetAll({ actor: lead });
     expect(await api.listProjects()).toEqual([]);
     expect(await api.listCustomers()).toEqual([]);
@@ -388,5 +388,69 @@ describe('fixtures', () => {
   it('knows the three sample fingerprints', () => {
     expect(['pi', 'po', 'prismsuite'].map((t) => createFixtures().lookupByHash(hashOf(t)))).toEqual(['pi', 'po', 'prismsuite']);
     expect(createFixtures().lookupByHash('deadbeef')).toBeNull();
+  });
+});
+
+describe('duplicate decisions and file types', () => {
+  it('lets only an Admin decide a duplicate, and only with a reason', async () => {
+    await api.__register('pi');
+    const p = await newProject();
+    await api.addDocument({ projectId: p.id, type: 'pi', file: sampleFile('pi'), actor: intake });
+    const dup = await api.addDocument({ projectId: p.id, type: 'pi', file: sampleFile('pi'), actor: intake });
+    await expect(api.resolveDuplicate(dup.document.id, 'replace', { actor: intake, reason: because })).rejects.toThrow('Admin');
+    await expect(api.resolveDuplicate(dup.document.id, 'replace', { actor: lead, reason: ' ' })).rejects.toThrow('reason');
+    await api.resolveDuplicate(dup.document.id, 'replace', { actor: lead, reason: because });
+    const audit = await api.listAudit(p.id);
+    expect(audit.find((a) => a.action === 'document_replaced').reason).toBe(because);
+  });
+
+  it('accepts PDF, Word and Excel files, keeps the original and never reads the contents of Word or Excel', async () => {
+    const p = await newProject();
+    for (const [name, kind] of [
+      ['order.pdf', 'pdf'],
+      ['order.docx', 'docx'],
+      ['working file.xlsx', 'xlsx'],
+    ]) {
+      const { document, recognised } = await api.addDocument({
+        projectId: p.id,
+        type: 'pi',
+        file: plainFile(`content of ${name}`, name),
+        actor: intake,
+      });
+      expect(document).toMatchObject({ fileKind: kind, status: 'needs_manual' });
+      expect(recognised).toBe(false);
+      expect((await api.getFile(document.fileId)).name).toBe(name);
+    }
+    expect((await api.getProject(p.id)).lines).toEqual([]);
+  });
+
+  it('never matches a Word or Excel file to a known sample, even with the same bytes', async () => {
+    await api.__register('pi');
+    const p = await newProject();
+    const asXlsx = sampleFile('pi', 'copy.xlsx');
+    const { document, recognised } = await api.addDocument({ projectId: p.id, type: 'pi', file: asXlsx, actor: intake });
+    expect(recognised).toBe(false);
+    expect(document.status).toBe('needs_manual');
+  });
+});
+
+describe('checklist progress and questionnaire responses', () => {
+  it('stores task progress and responses, and clears them on reset', async () => {
+    const { items } = await api.getCatalog();
+    expect(items.length).toBeGreaterThan(0);
+    await api.setTaskProgress('firewall|new|0', { s: 2 }, 'Firewall: step');
+    await api.addResponse('firewall', { user: ' Asha ' });
+    let state = await api.getChecklistState();
+    expect(state.tasks['firewall|new|0'].s).toBe(2);
+    expect(state.q.firewall[0].user).toBe('Asha');
+    await api.patchResponse('firewall', state.q.firewall[0].id, { vpn: 1 });
+    state = await api.getChecklistState();
+    expect(state.q.firewall[0].vpn).toBe(1);
+    await expect(api.addResponse('firewall', { user: ' ' })).rejects.toThrow('User name');
+    await expect(api.addResponse('nonsense', { user: 'A' })).rejects.toThrow('does not exist');
+    await api.deleteResponse('firewall', state.q.firewall[0].id);
+    await expect(api.resetAll({ actor: intake })).rejects.toThrow('Admin');
+    await api.resetAll({ actor: lead });
+    expect((await api.getChecklistState()).tasks).toEqual({});
   });
 });

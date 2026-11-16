@@ -7,16 +7,16 @@ import { useApi } from '@/data/api';
 */
 export function DocumentViewer({ fileId, title, className = '' }) {
   const api = useApi();
-  const [state, setState] = useState({ url: null, missing: false });
+  const [state, setState] = useState({ url: null, missing: false, name: '', pdf: true });
 
   useEffect(() => {
     let revoked = false;
     let created = null;
     api.getFile(fileId).then((file) => {
       if (revoked) return;
-      if (!file || typeof URL.createObjectURL !== 'function') return setState({ url: null, missing: true });
+      if (!file || typeof URL.createObjectURL !== 'function') return setState({ url: null, missing: true, name: '', pdf: true });
       created = URL.createObjectURL(file.blob);
-      setState({ url: created, missing: false });
+      setState({ url: created, missing: false, name: file.name, pdf: file.type === 'application/pdf' });
     });
     return () => {
       revoked = true;
@@ -28,6 +28,18 @@ export function DocumentViewer({ fileId, title, className = '' }) {
     return <p className="viewer-empty">The original file is not stored for this document, so there is nothing to show beside the lines.</p>;
   }
   if (!state.url) return <p className="viewer-empty">Opening the file.</p>;
+  if (!state.pdf) {
+    // Word and Excel files cannot be drawn in the page, so they open in their own program
+    return (
+      <p className="viewer-empty">
+        {state.name} is not a PDF and cannot be shown here.{' '}
+        <a href={state.url} download={state.name}>
+          Download it
+        </a>{' '}
+        to read it.
+      </p>
+    );
+  }
   return (
     <object className={`viewer ${className}`} data={state.url} type="application/pdf" aria-label={title}>
       <p className="viewer-empty">

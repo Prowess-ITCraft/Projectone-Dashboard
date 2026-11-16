@@ -24,8 +24,8 @@ Rules for developing the Project One frontend. They apply to every contributor, 
 - No placeholder code, `TODO` or `FIXME` comments, commented-out code, `console.log` or lorem ipsum. Unfinished work lives behind a named interface and is listed in the stage report.
 - Comments explain why, never what.
 - Screens never read storage or fixtures directly; once the data layer exists, they go through the `ProjectOneApi` interface only.
-- Money is integer paise, never a floating point number. Dates are stored in UTC and shown in IST.
-- Field engineer screens never receive prices or bank details. Permission checks go through one helper, not scattered role checks.
+- Project One holds no financial data: never read, store or show rates, amounts, taxes, totals, payment terms, bank details, cost or margin (ADR 0009). Dates are stored in UTC and shown in IST.
+- Roles are Admin and Engineer. Permissions are data (role to actions) and every check goes through `can()`, not scattered role checks.
 - Accessibility is part of done: keyboard operation, visible focus, labels on every control, enough contrast, reduced motion respected. Dialogs trap focus and return it on close.
 - Every change that adds logic adds tests (Vitest and Testing Library). Components that hold logic get component tests.
 

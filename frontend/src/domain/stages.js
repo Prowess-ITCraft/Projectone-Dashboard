@@ -3,44 +3,44 @@
   it is done. Nothing is shown done unless a person recorded it. `built` says whether the app has screens for it yet.
 */
 export const STAGES = [
-  { id: 'trigger', no: 0, name: 'Order received', owner: 'Intake coordinator', gate: 'Order document stored', built: true },
+  { id: 'trigger', no: 0, name: 'Order received', owner: 'Engineer', gate: 'Order document stored', built: true },
   {
     id: 'intake',
     no: 1,
     name: 'Intake',
-    owner: 'Intake coordinator',
-    gate: 'Parsed lines reviewed and confirmed by the project lead',
+    owner: 'Engineer',
+    gate: 'Parsed lines reviewed and confirmed by an Admin',
     built: true,
   },
   {
     id: 'classify',
     no: 2,
     name: 'Classify',
-    owner: 'Intake coordinator, project lead',
+    owner: 'Engineer, Admin',
     gate: 'Every line classified, no unknown lines left',
     built: true,
   },
-  { id: 'kickoff', no: 3, name: 'Kick-off', owner: 'Project lead', gate: 'Kick-off record complete', built: false },
+  { id: 'kickoff', no: 3, name: 'Kick-off', owner: 'Admin', gate: 'Kick-off record complete', built: false },
   {
     id: 'lookup',
     no: 4,
     name: 'Lookup tables',
-    owner: 'Project lead, senior engineer',
+    owner: 'Admin, Engineer',
     gate: 'Mandatory lookup fields complete',
     built: false,
   },
-  { id: 'planning', no: 5, name: 'Planning', owner: 'Project lead', gate: 'Customer and team accept the schedule', built: false },
-  { id: 'execution', no: 6, name: 'Execution', owner: 'Field engineers', gate: 'All mandatory tasks verified', built: false },
-  { id: 'validation', no: 7, name: 'Validation', owner: 'Senior engineer', gate: 'All product validations pass', built: false },
+  { id: 'planning', no: 5, name: 'Planning', owner: 'Admin', gate: 'Customer and team accept the schedule', built: false },
+  { id: 'execution', no: 6, name: 'Execution', owner: 'Engineer', gate: 'All mandatory tasks verified', built: false },
+  { id: 'validation', no: 7, name: 'Validation', owner: 'Admin', gate: 'All product validations pass', built: false },
   {
     id: 'completion',
     no: 8,
     name: 'Completion and sign-off',
-    owner: 'Project lead, customer',
+    owner: 'Admin',
     gate: 'Both approvals recorded',
     built: false,
   },
-  { id: 'post', no: 9, name: 'Post-closure', owner: 'Project lead, Director', gate: 'Entitlements created', built: false },
+  { id: 'post', no: 9, name: 'Post-closure', owner: 'Admin', gate: 'Entitlements created', built: false },
 ];
 
 export const ORDER_DOCUMENT_TYPES = ['pi', 'po'];

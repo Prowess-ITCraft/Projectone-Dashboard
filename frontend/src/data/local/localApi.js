@@ -1,5 +1,7 @@
+import { applyAddRow, applyDeleteRow, applyPatchRow, applyTask, emptyChecklistState } from '@/domain/checklist';
 import { classifyLines, DEFAULT_RULES } from '@/domain/classification';
 import { DOCUMENT_TYPES, extractionToDocument } from '@/domain/documents';
+import { ACCEPTED_TEXT, FILE_KINDS, fileKind } from '@/domain/files';
 import { ENTRY_PATHS } from '@/domain/projects';
 import { financialYear, customerNumber, newId, projectNumber } from '@/domain/ids';
 import { actorLabel, can } from '@/domain/permissions';
@@ -229,7 +231,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'upload', 'Your role cannot upload documents.');
         if (!DOCUMENT_TYPES[type]) fail('Choose what kind of document this is.');
-        if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') fail('Only PDF files can be uploaded.');
+        const kind = fileKind(file);
+        if (!kind) fail(`Only ${ACCEPTED_TEXT} files can be uploaded.`);
         if (file.size > MAX_FILE_BYTES) fail('This file is larger than 25 MB.');
         const project = await requireProject(projectId);
         if (ORDER_DOCUMENT_TYPES.includes(type) && project.intake)
@@ -237,7 +240,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
         const bytes = await file.arrayBuffer();
         const fileHash = await sha256Hex(bytes);
-        const sample = fixtures.lookupByHash(fileHash);
+        const sample = kind === 'pdf' ? fixtures.lookupByHash(fileHash) : null;
         const json = sample ? await fixtures.load(sample) : null;
         const parsed = json ? extractionToDocument(json) : null;
         const docType = parsed ? parsed.document.type : type;
@@ -246,10 +249,10 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         await storage.put('files', fileId, {
           id: fileId,
           name: file.name,
-          type: 'application/pdf',
+          type: FILE_KINDS[kind].mime,
           size: file.size,
           hash: fileHash,
-          blob: new Blob([bytes], { type: 'application/pdf' }),
+          blob: new Blob([bytes], { type: FILE_KINDS[kind].mime }),
         });
         const doc = {
           id: newId(),
@@ -258,13 +261,12 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           fileId,
           fileName: file.name,
           fileHash,
+          fileKind: kind,
           status: parsed ? (docType === 'prismsuite' ? 'attached' : 'parsed') : docType === 'prismsuite' ? 'attached' : 'needs_manual',
           parser: parsed ? { name: 'sample extraction', version: '1' } : null,
           number: '',
           date: '',
           billTo: { name: '', address: '', gstin: '', contact: '', email: '' },
-          totals: null,
-          terms: [],
           recommendations: [],
           ...(parsed?.document ?? {}),
           active: true,
@@ -317,9 +319,11 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         return { document: next, duplicateOf: duplicate };
       }),
 
-    resolveDuplicate: (documentId, decision, { actor }) =>
+    resolveDuplicate: (documentId, decision, { actor, reason }) =>
       write(async () => {
-        need(actor, 'upload', 'Your role cannot upload documents.');
+        need(actor, 'resolve_duplicate', 'Only an Admin can decide between two versions of a document.');
+        if (decision !== 'cancel' && decision !== 'replace') fail('Choose to replace the earlier document or cancel the new one.');
+        if (!reason?.trim()) fail('Give a reason for the decision.');
         const doc = await requireDocument(documentId);
         if (!doc.pendingDuplicate) fail('This document is not waiting for a decision.');
         const existing = await requireDocument(doc.duplicateOfId);
@@ -327,7 +331,10 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           await dropLines(doc.id);
           await storage.delete('files', doc.fileId);
           await storage.delete('documents', doc.id);
-          await record(actor, 'duplicate_cancelled', doc.projectId, { subject: `${DOCUMENT_TYPES[doc.type]} ${doc.number}`, reason: null });
+          await record(actor, 'duplicate_cancelled', doc.projectId, {
+            subject: `${DOCUMENT_TYPES[doc.type]} ${doc.number}`,
+            reason: reason.trim(),
+          });
           return null;
         }
         if (existing.projectId !== doc.projectId) fail('That number is used by a document in another project. Remove it there first.');
@@ -340,7 +347,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         if (project.intake || project.classify) await resetConfirmations(doc.projectId, 'intake');
         await record(actor, 'document_replaced', doc.projectId, {
           subject: `${DOCUMENT_TYPES[doc.type]} ${doc.number}`,
-          reason: 'Replaced by an uploaded version; the earlier one is kept as history.',
+          reason: reason.trim(),
         });
         return next;
       }),
@@ -412,8 +419,6 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
               no,
               title: line.title,
               qty: line.qty ?? 1,
-              ratePaise: line.ratePaise ?? null,
-              amountPaise: line.amountPaise ?? null,
               scopeItems: line.scopeItems ?? [],
             },
           ],
@@ -466,7 +471,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     confirmIntake: (projectId, { actor }) =>
       write(async () => {
-        need(actor, 'confirm_intake', 'Only the project lead can confirm the intake lines.');
+        need(actor, 'confirm_intake', 'Only an Admin can confirm the intake lines.');
         const project = await requireProject(projectId);
         const docs = await byProject('documents', projectId);
         const orders = docs.filter((d) => d.active && ORDER_DOCUMENT_TYPES.includes(d.type));
@@ -483,7 +488,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     reopenIntake: (projectId, { actor, reason }) =>
       write(async () => {
-        need(actor, 'reopen', 'Only the project lead can reopen the intake review.');
+        need(actor, 'reopen', 'Only an Admin can reopen the intake review.');
         if (!reason?.trim()) fail('Give a reason for reopening the intake review.');
         const project = await requireProject(projectId);
         if (!project.intake) fail('The intake review is not confirmed.');
@@ -510,7 +515,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     reopenClassification: (projectId, { actor, reason }) =>
       write(async () => {
-        need(actor, 'reopen', 'Only the project lead can reopen the classification.');
+        need(actor, 'reopen', 'Only an Admin can reopen the classification.');
         if (!reason?.trim()) fail('Give a reason for reopening the classification.');
         const project = await requireProject(projectId);
         if (!project.classify) fail('The classification is not confirmed.');
@@ -520,7 +525,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     setModuleDelivery: (moduleId, { status, deliveredOn }, { actor }) =>
       write(async () => {
-        need(actor, 'set_delivery', 'Only the project lead can record delivery.');
+        need(actor, 'set_delivery', 'Only an Admin can record delivery.');
         const module = (await storage.get('modules', moduleId)) ?? fail('That module no longer exists.');
         if (status !== 'awaiting_delivery' && status !== 'delivered') fail('Choose a delivery status.');
         const today = new Date(now() + 5.5 * 36e5).toISOString().slice(0, 10); // the date in India
@@ -568,6 +573,41 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           });
         }
         await record(actor, 'service_assigned', line.projectId, { subject: `Line ${line.no}: ${line.title}`, reason: null });
+      }),
+
+    getCatalog: async () => fixtures.catalog,
+
+    /* Checklist progress and questionnaire responses of the component pages (temporary until execution is built) */
+    getChecklistState: async () => (await storage.get('checklist', 'current')) ?? emptyChecklistState(),
+
+    setTaskProgress: (key, patch, label) =>
+      write(async () => {
+        const state = (await storage.get('checklist', 'current')) ?? emptyChecklistState();
+        await storage.put('checklist', 'current', applyTask(state, key, patch, label, now()));
+      }),
+
+    addResponse: (kind, row) =>
+      write(async () => {
+        const definition = fixtures.catalog.questionnaires[kind] ?? fail('That questionnaire does not exist.');
+        if (!row.user?.trim()) fail('User name is required.');
+        const state = (await storage.get('checklist', 'current')) ?? emptyChecklistState();
+        await storage.put(
+          'checklist',
+          'current',
+          applyAddRow(state, kind, { ...row, user: row.user.trim() }, newId(), definition.title, now()),
+        );
+      }),
+
+    patchResponse: (kind, id, patch) =>
+      write(async () => {
+        const state = (await storage.get('checklist', 'current')) ?? emptyChecklistState();
+        await storage.put('checklist', 'current', applyPatchRow(state, kind, id, patch));
+      }),
+
+    deleteResponse: (kind, id) =>
+      write(async () => {
+        const state = (await storage.get('checklist', 'current')) ?? emptyChecklistState();
+        await storage.put('checklist', 'current', applyDeleteRow(state, kind, id));
       }),
 
     listAudit: async (projectId) => (await byProject('audit', projectId)).sort((a, b) => b.at - a.at),
@@ -639,7 +679,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     resetAll: ({ actor }) =>
       write(async () => {
-        need(actor, 'reopen', 'Only the project lead can reset project data.');
+        need(actor, 'reset_data', 'Only an Admin can reset the data.');
         await storage.clear();
       }),
   };

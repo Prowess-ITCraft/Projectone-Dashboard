@@ -60,3 +60,9 @@ Order of authority used: owner instructions, then `Project One Frontend Restruct
 - `index.html` pulls the Urbanist font from Google Fonts. Field phones offline will fall back to the system font unless the font is bundled (Stage 8 question).
 - The production bundle is 453 kB of JavaScript in one chunk. Fine today; route-level code splitting will be needed once the field screens exist.
 - Moving everything into `frontend/` breaks the current Vercel build until the project's root directory is changed.
+
+## E. Corrections from the second prompt (16 Nov 2026)
+
+No longer gaps: the BOQ format, a customer role, financial masking, and text recognition for scans as a blocker. Project One holds no financial data, there is no BOQ and no customer portal, and the roles are Admin and Engineer.
+
+New inputs to track: thirteen sample documents from six companies (received, private; anonymised non-financial fixtures still to be written and reviewed); a lookup table workbook (received, private; the NAS field conflict is open); a work progress tracker sample and one completion report sample (received, private); Excel PI working files with buying prices (never read or stored, Excel files are accepted as uploads but their contents are never read); the PrismSuite logo file (missing, text badge until supplied).

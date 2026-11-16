@@ -1,7 +1,7 @@
 # 0008. Intake flow, classification rules and roles
 
 Date: 2026-11-16
-Status: Accepted
+Status: Accepted. The money, validation and role rules are superseded by 0009.
 
 ## Context
 

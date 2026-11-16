@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QUESTIONNAIRES } from '../data.js';
-import { useStore } from '../store.jsx';
-import { Card, CountUp, DataTable, FormField, Icon, PageHead, SegmentedControl, StatusBadge } from '@/components';
+import { useChecklist } from '@/data/checklist';
+import { Card, CountUp, DataTable, ErrorState, FormField, Icon, LoadingState, PageHead, SegmentedControl, StatusBadge } from '@/components';
 import { downloadCSV } from '@/lib/csv';
 
 const HML = { H: 'High', M: 'Med', L: 'Low' };
@@ -31,8 +30,14 @@ const SUMMARY = {
 const blank = (cols) => Object.fromEntries(cols.map((c) => [c.k, c.t === 'yn' ? 0 : c.t === 'hml' ? 'M' : '']));
 
 export default function Questionnaire({ kind, embedded }) {
-  const def = QUESTIONNAIRES[kind];
-  const { state, addRow, patchRow, delRow } = useStore();
+  const data = useChecklist();
+  if (!data.ready) return data.error ? <ErrorState message={data.error} /> : <LoadingState label="Loading the questionnaire" />;
+  return <QuestionnaireTable kind={kind} embedded={embedded} data={data} />;
+}
+
+function QuestionnaireTable({ kind, embedded, data }) {
+  const { state, addRow, patchRow, delRow, questionnaires } = data;
+  const def = questionnaires[kind];
   const rows = state.q[kind];
   const [f, setF] = useState(() => blank(def.cols));
   const [err, setErr] = useState('');
