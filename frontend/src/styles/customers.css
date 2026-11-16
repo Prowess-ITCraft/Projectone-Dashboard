@@ -1,0 +1,184 @@
+/* Customers, sites, project status and the phone card lists. Built only from the theme tokens. */
+@layer base {
+  /* the PrismSuite badge: a small lime-tinted chip until the logo file arrives */
+  .prism-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-8);
+    border: 1px solid var(--tint-bd);
+    border-radius: var(--rad-full);
+    background: var(--tint);
+    color: var(--data);
+    font-size: var(--fs-tag);
+    font-weight: var(--fw-semibold);
+    line-height: var(--lh-none);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .prism-badge.badge-lg {
+    padding: var(--space-6) var(--space-12);
+    font-size: var(--fs-label);
+  }
+  .head-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  /* text that acts as a button inside a sentence */
+  .link-btn {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: var(--data);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* sites */
+  .site-list {
+    list-style: none;
+    margin: 0 0 var(--space-12);
+    padding: 0;
+    display: grid;
+    gap: var(--space-8);
+  }
+  .site-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-12);
+    padding: var(--space-10) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--rad-md);
+  }
+  .site-item div {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .site-item small {
+    color: var(--mut);
+    font-size: var(--fs-small);
+  }
+  .site-form {
+    display: grid;
+    gap: var(--space-12);
+    margin-bottom: var(--space-12);
+  }
+  .site-picker {
+    display: grid;
+    gap: var(--space-12);
+  }
+  .site-choices {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-6);
+  }
+  .site-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-10);
+    padding: var(--space-8) var(--space-10);
+    border: 1px solid var(--line);
+    border-radius: var(--rad-md);
+    cursor: pointer;
+  }
+  .site-choice input {
+    margin-top: var(--space-4);
+    accent-color: var(--lime);
+  }
+  .site-choice span {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .site-choice small {
+    color: var(--mut);
+    font-size: var(--fs-small);
+  }
+  .site-draft {
+    display: grid;
+    gap: var(--space-8);
+    padding: var(--space-12);
+    border: 1px dashed var(--line-2);
+    border-radius: var(--rad-md);
+  }
+  .site-picker > .btn.sm,
+  .site-draft > .btn.sm {
+    justify-self: start;
+    margin-left: 0;
+  }
+
+  /* phone lists: one card per row, no sideways scrolling */
+  .row-cards {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-8);
+    display: grid;
+    gap: var(--space-8);
+  }
+  .row-card {
+    display: grid;
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-14);
+    border: 1px solid var(--line);
+    border-radius: var(--rad-md);
+    background: var(--sheet);
+    min-width: 0;
+  }
+  .row-card.empty {
+    color: var(--mut);
+    text-align: center;
+  }
+  .row-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+  }
+  .row-card-sub {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .row-card-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-4) var(--space-12);
+    margin: 0;
+    font-size: var(--fs-small);
+  }
+  .row-card-facts dt {
+    color: var(--mut);
+  }
+  .row-card-facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* phones: the list filters fold away under one toggle */
+  .filters-more {
+    width: 100%;
+  }
+  .filters-more summary {
+    cursor: pointer;
+    padding: var(--space-8) var(--space-14);
+    border: 1px solid var(--line-2);
+    border-radius: var(--rad-full);
+    background: var(--sheet);
+    font-weight: var(--fw-medium);
+  }
+  .filters-more[open] summary {
+    margin-bottom: var(--space-12);
+  }
+  .filters-more .filters {
+    margin-bottom: 0;
+  }
+}
