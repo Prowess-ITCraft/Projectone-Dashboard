@@ -1,16 +1,27 @@
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams, Navigate } from 'react-router-dom';
-import { ITEMS } from '../data.js';
-import { useStore, itemStats, tasksFor, MODES } from '../store.jsx';
-import { Card, CountUp, DataTable, FormField, Icon, PageHead, Ring, StatusBadge, TASK_STATUS } from '@/components';
+import { useChecklist } from '@/data/checklist';
+import { itemStats, tasksFor, MODES } from '@/domain/checklist';
+import {
+  Card,
+  CountUp,
+  DataTable,
+  ErrorState,
+  FormField,
+  Icon,
+  LoadingState,
+  PageHead,
+  Ring,
+  StatusBadge,
+  TASK_STATUS,
+} from '@/components';
 import { downloadCSV } from '@/lib/csv';
 
 const STATUS = TASK_STATUS.map((s) => s.label);
 const COLUMNS = ['SN', 'Done', 'Task', 'Start date', 'End date', 'Progress', 'Comments / suggestion'];
 const PHASES = ['Installation', 'Configuration'];
 
-function Row({ t, label }) {
-  const { state, setTask } = useStore();
+function Row({ t, label, state, setTask }) {
   const v = state.tasks[t.key] || { s: 0, start: '', end: '', c: '' };
   const pct = [0, 50, 100][v.s];
   return (
@@ -95,9 +106,15 @@ function Row({ t, label }) {
 }
 
 export default function Detail() {
+  const data = useChecklist();
+  if (!data.ready) return data.error ? <ErrorState message={data.error} /> : <LoadingState label="Loading the checklist" />;
+  return <Checklist data={data} />;
+}
+
+function Checklist({ data }) {
   const { id, mode: modeParam } = useParams();
   const nav = useNavigate();
-  const { state } = useStore();
+  const { state, items: ITEMS, setTask } = data;
   const item = ITEMS.find((i) => i.id === id);
   if (!item) return <Navigate to="/components" replace />;
 
@@ -187,7 +204,7 @@ export default function Detail() {
             <Card key={ph} flush title={`${ph} steps`} hint={<span className="num">{`${done} of ${rows.length} completed`}</span>}>
               <DataTable className="check" columns={COLUMNS}>
                 {rows.map((t) => (
-                  <Row key={t.key} t={t} label={item.name} />
+                  <Row key={t.key} t={t} label={item.name} state={state} setTask={setTask} />
                 ))}
               </DataTable>
             </Card>

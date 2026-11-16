@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ITEMS, PRODUCT_LIST } from '../data.js';
-import { useStore, itemStats, MODES } from '../store.jsx';
-import { EmptyState, Icon, PageHead, StatusBadge } from '@/components';
+import { useChecklist } from '@/data/checklist';
+import { itemStats, MODES } from '@/domain/checklist';
+import { EmptyState, ErrorState, Icon, LoadingState, PageHead, StatusBadge } from '@/components';
 
 // where a component's steps come from, and how that source is labelled
 const SRC = { plan: ['Project plan', 'positive'], mixed: ['Plan + demo', 'accent'], demo: ['Demo steps', 'warning'] };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.025 } } };
 const rise = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } } };
 
-function Tile({ item, name, mode, desc }) {
-  const { state } = useStore();
+function Tile({ item, state, name, mode, desc }) {
   const s = itemStats(state, item);
   const [txt, tone] = SRC[item.src];
   return (
@@ -39,6 +38,13 @@ function Tile({ item, name, mode, desc }) {
 }
 
 export default function Components() {
+  const data = useChecklist();
+  if (!data.ready) return data.error ? <ErrorState message={data.error} /> : <LoadingState label="Loading the components" />;
+  return <ComponentList data={data} />;
+}
+
+function ComponentList({ data }) {
+  const { state, items: ITEMS, productList: PRODUCT_LIST } = data;
   const [q, setQ] = useState('');
   const match = (s) => s.toLowerCase().includes(q.toLowerCase());
   const infra = ITEMS.filter((i) => i.grp === 'infra' && (match(i.name) || match(i.desc)));
@@ -59,7 +65,7 @@ export default function Components() {
       </h2>
       <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={'i' + q}>
         {infra.map((i) => (
-          <Tile key={i.id} item={i} name={i.name} />
+          <Tile key={i.id} item={i} state={state} name={i.name} />
         ))}
       </motion.div>
 
@@ -68,7 +74,7 @@ export default function Components() {
       </h2>
       <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={'p' + q}>
         {prods.map((p) => (
-          <Tile key={p.name} item={byId[p.id]} name={p.name} mode={p.mode} desc={byId[p.id].desc} />
+          <Tile key={p.name} item={byId[p.id]} state={state} name={p.name} mode={p.mode} desc={byId[p.id].desc} />
         ))}
       </motion.div>
       {!infra.length && !prods.length && <EmptyState>No components match &quot;{q}&quot;.</EmptyState>}
