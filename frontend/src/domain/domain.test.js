@@ -8,36 +8,12 @@ import { matchCustomers, normaliseName } from './customers';
 import { extractionToDocument } from './documents';
 import { isValidGstin } from './gstin';
 import { financialYear, projectNumber } from './ids';
-import { formatINR, gstOf, lineAmount, paiseToInput, toPaise } from './money';
-import { can } from './permissions';
+import { can, PERMISSIONS } from './permissions';
 import { isSupportLine, isSupportOnly, splitScope, supportYears } from './scope';
 import { computeTracker, currentStage } from './stages';
 import { validateDocument } from './validation';
 
 const withIds = (lines) => lines.map((l) => ({ ...l, id: `L${l.no}` }));
-
-describe('money', () => {
-  it('reads Indian-formatted amounts into whole paise', () => {
-    expect(toPaise('1,75,893.00')).toBe(17589300);
-    expect(toPaise('₹ 500')).toBe(50000);
-    expect(toPaise('63125.28')).toBe(6312528);
-    expect(toPaise('-0.28')).toBe(-28);
-    expect(toPaise('12.345')).toBeNull();
-    expect(toPaise('abc')).toBeNull();
-    expect(toPaise('')).toBeNull();
-  });
-
-  it('formats with lakh grouping and round-trips through the input text', () => {
-    expect(formatINR(17589300)).toBe('₹1,75,893.00');
-    expect(paiseToInput(6312528)).toBe('63125.28');
-    expect(paiseToInput(-28)).toBe('-0.28');
-  });
-
-  it('calculates line amounts and GST without floating point drift', () => {
-    expect(lineAmount(11, 349800)).toBe(3847800);
-    expect(gstOf(35069600)).toBe(6312528);
-  });
-});
 
 describe('numbers and identifiers', () => {
   it('uses the Indian financial year, April to March', () => {
@@ -121,7 +97,7 @@ describe('classification rules against the sample extractions', () => {
 });
 
 describe('document extraction', () => {
-  it('maps the proforma invoice header, bill-to, totals and a call confirmation', () => {
+  it('maps the proforma invoice header, bill-to and a call confirmation', () => {
     const { document, lines } = extractionToDocument(pi);
     expect(document).toMatchObject({
       type: 'pi',
@@ -130,7 +106,6 @@ describe('document extraction', () => {
       quoteRef: 'ITCraft/NN/2627/004',
     });
     expect(document.billTo.gstin).toBe('27AAAAA0000A1Z5');
-    expect(document.totals).toEqual({ subtotalPaise: 35069600, gstPaise: 6312528, roundOffPaise: -28, grandPaise: 41382100 });
     expect(lines).toHaveLength(10);
     expect(lines[1].scopeItems).toHaveLength(5);
   });
@@ -160,26 +135,20 @@ describe('validation', () => {
     expect(clean(po)).toEqual([]);
   });
 
-  it('flags totals that do not add up, as warnings that quote money', () => {
-    const { document, lines } = extractionToDocument(pi);
-    const bad = { ...document, totals: { ...document.totals, subtotalPaise: 100 } };
-    const ids = validateDocument(bad, withIds(lines), new Date('2026-05-21T00:00:00Z')).map((i) => i.id);
-    expect(ids).toEqual(expect.arrayContaining(['subtotal', 'gst', 'grand']));
-    validateDocument(bad, withIds(lines)).forEach((i) => expect(i.severity).toBe('warning'));
+  it('never carries a financial field, even from an extraction that has them', () => {
+    const priced = {
+      ...pi,
+      totals: { subtotal: 100, grand_total: 118 },
+      terms: ['Payment in 30 days'],
+      lines: pi.lines.map((l) => ({ ...l, rate: 10, amount: 10 })),
+    };
+    const { document, lines } = extractionToDocument(priced);
+    expect(JSON.stringify({ document, lines })).not.toMatch(/rate|amount|total|paise|terms|bank/i);
   });
 
-  it('flags a quantity times rate mismatch on one line', () => {
-    const { document, lines } = extractionToDocument(po);
-    const edited = withIds(lines);
-    edited[1] = { ...edited[1], qty: 10 };
-    const issue = validateDocument(document, edited, new Date('2026-05-06T00:00:00Z')).find((i) => i.id === 'line-2');
-    expect(issue).toMatchObject({ financial: true });
-  });
-
-  it('flags an expired proforma invoice without making it financial', () => {
+  it('flags an expired proforma invoice', () => {
     const { document, lines } = extractionToDocument(pi);
     const issue = validateDocument(document, withIds(lines), new Date('2026-06-30T00:00:00Z')).find((i) => i.id === 'expired');
-    expect(issue.financial).toBe(false);
     expect(issue.message).toMatch(/5 days/);
   });
 });
@@ -225,15 +194,24 @@ describe('coverage check', () => {
 });
 
 describe('roles', () => {
-  it('lets only the project lead see money, confirm intake and reopen', () => {
-    const lead = { role: 'project_lead' };
-    const intake = { role: 'intake_coordinator' };
-    ['view_financials', 'confirm_intake', 'reopen'].forEach((a) => {
-      expect(can(lead, a)).toBe(true);
-      expect(can(intake, a)).toBe(false);
+  it('lets only the Admin confirm intake, reopen, decide duplicates and reset', () => {
+    const admin = { role: 'admin' };
+    const engineer = { role: 'engineer' };
+    ['confirm_intake', 'reopen', 'resolve_duplicate', 'reset_data', 'set_delivery'].forEach((a) => {
+      expect(can(admin, a)).toBe(true);
+      expect(can(engineer, a)).toBe(false);
     });
-    expect(can(intake, 'upload')).toBe(true);
+    expect(can(engineer, 'upload')).toBe(true);
     expect(can(null, 'upload')).toBe(false);
+  });
+
+  it('reads permissions from data, so an unknown role can do nothing and a new row grants access', () => {
+    expect(can({ role: 'visitor' }, 'upload')).toBe(false);
+    expect(Object.keys(PERMISSIONS)).toEqual(['admin', 'engineer']);
+  });
+
+  it('has no financial permission at all', () => {
+    Object.values(PERMISSIONS).forEach((actions) => expect(actions.join()).not.toMatch(/financ|money|price/));
   });
 });
 

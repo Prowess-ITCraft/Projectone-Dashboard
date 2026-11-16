@@ -1,25 +1,19 @@
 /*
-  Temporary roles until the role model is decided. Every permission check in the app goes through can(), so the
-  agreed matrix replaces this one function later. It starts permissive: only money, confirmations and reopening
-  are limited to the project lead.
+  Roles and what each may do. Permissions are data (role to actions), so adding a role later is a new row here and
+  no change to any component. Every check in the app goes through can(). Admin and Engineer are the only roles for
+  now; the matrix below keeps the earlier behaviour (what the intake coordinator did is now Engineer, what the project
+  lead did is now Admin) and is listed as open until the owner confirms it.
 */
 export const ROLES = {
-  intake_coordinator: 'Intake coordinator',
-  project_lead: 'Project lead',
+  admin: 'Admin',
+  engineer: 'Engineer',
 };
 
-const ALLOWED = {
-  create_project: ['intake_coordinator', 'project_lead'],
-  upload: ['intake_coordinator', 'project_lead'],
-  edit_lines: ['intake_coordinator', 'project_lead'],
-  classify: ['intake_coordinator', 'project_lead'],
-  confirm_classification: ['intake_coordinator', 'project_lead'],
-  view_financials: ['project_lead'],
-  confirm_intake: ['project_lead'],
-  reopen: ['project_lead'],
-  set_delivery: ['project_lead'],
-};
+const ENGINEER = ['create_project', 'upload', 'edit_lines', 'classify', 'confirm_classification'];
+const ADMIN = [...ENGINEER, 'confirm_intake', 'reopen', 'set_delivery', 'resolve_duplicate', 'reset_data'];
 
-export const can = (actor, action) => Boolean(actor && ALLOWED[action]?.includes(actor.role));
+export const PERMISSIONS = { admin: ADMIN, engineer: ENGINEER };
+
+export const can = (actor, action) => Boolean(actor && PERMISSIONS[actor.role]?.includes(action));
 
 export const actorLabel = (actor) => (actor?.name ? `${actor.name}, ${ROLES[actor.role]}` : (ROLES[actor?.role] ?? 'Unknown'));
