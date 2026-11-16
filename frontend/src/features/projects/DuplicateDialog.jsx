@@ -1,9 +1,9 @@
-import { Dialog, LoadingState, Notice } from '@/components';
+import { useState } from 'react';
+import { Dialog, FormField, LoadingState, Notice } from '@/components';
 import { useActor } from '@/app/actor';
 import { useApi, useApiQuery } from '@/data/api';
 import { DOCUMENT_TYPES } from '@/domain/documents';
 import { can } from '@/domain/permissions';
-import { formatINR } from '@/domain/money';
 import { useAction } from '@/lib/useAction';
 import { formatDate } from './labels';
 
@@ -16,12 +16,12 @@ function compareLines(earlier, later) {
   const mark = (l, other) => {
     const o = other.get(norm(l.title));
     if (!o) return 'only';
-    return o.qty !== l.qty || o.ratePaise !== l.ratePaise ? 'changed' : 'same';
+    return o.qty !== l.qty ? 'changed' : 'same';
   };
   return { earlier: earlier.map((l) => ({ ...l, mark: mark(l, after) })), later: later.map((l) => ({ ...l, mark: mark(l, before) })) };
 }
 
-function Side({ title, doc, lines, showMoney }) {
+function Side({ title, doc, lines }) {
   return (
     <section className="compare-side" aria-label={title}>
       <h3>{title}</h3>
@@ -32,12 +32,6 @@ function Side({ title, doc, lines, showMoney }) {
         <dd>{formatDate(doc.date) || 'Not entered'}</dd>
         <dt>File</dt>
         <dd>{doc.fileName}</dd>
-        {showMoney && doc.totals?.grandPaise != null && (
-          <>
-            <dt>Grand total</dt>
-            <dd>{formatINR(doc.totals.grandPaise)}</dd>
-          </>
-        )}
       </dl>
       <ul className="compare-lines">
         {lines.map((l) => (
@@ -47,7 +41,6 @@ function Side({ title, doc, lines, showMoney }) {
             </span>
             <small className="num">
               {l.qty}
-              {showMoney && l.ratePaise != null ? ` x ${formatINR(l.ratePaise)}` : ''}
               {l.mark === 'only' ? ' (not in the other)' : l.mark === 'changed' ? ' (changed)' : ''}
             </small>
           </li>
@@ -69,11 +62,12 @@ export function DuplicateDialog({ candidate, existing, projectId, onClose }) {
   const earlier = useApiQuery((a) => a.getDocumentLines(existing.id), [existing.id]);
   const later = useApiQuery((a) => a.getDocumentLines(candidate.id), [candidate.id]);
   const sameProject = existing.projectId === projectId;
-  const showMoney = can(actor, 'view_financials');
+  const allowed = can(actor, 'resolve_duplicate');
+  const [reason, setReason] = useState('');
 
   const decide = async (decision) => {
     const ok = await run(async () => {
-      await api.resolveDuplicate(candidate.id, decision, { actor });
+      await api.resolveDuplicate(candidate.id, decision, { actor, reason });
       return true;
     });
     if (ok) onClose();
@@ -92,15 +86,24 @@ export function DuplicateDialog({ candidate, existing, projectId, onClose }) {
       description="Decide which one to keep. Nothing changes until you choose; closing this window leaves the new file waiting."
       actions={
         <>
-          <button type="button" className="btn ghost sm" disabled={busy} onClick={() => decide('cancel')}>
+          <button type="button" className="btn ghost sm" disabled={busy || !allowed || !reason.trim()} onClick={() => decide('cancel')}>
             Cancel the new upload
           </button>
-          <button type="button" className="btn sm" disabled={busy || !sameProject} onClick={() => decide('replace')} data-autofocus>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={busy || !sameProject || !allowed || !reason.trim()}
+            onClick={() => decide('replace')}
+            data-autofocus
+          >
             Replace the earlier one
           </button>
         </>
       }
     >
+      {!allowed && (
+        <Notice tone="warning">Only an Admin can decide which version to keep. The new file stays waiting until an Admin decides.</Notice>
+      )}
       {!sameProject && (
         <Notice tone="warning">
           The earlier document belongs to another project, so it cannot be replaced from here. Cancel this upload or remove it there first.
@@ -112,12 +115,19 @@ export function DuplicateDialog({ candidate, existing, projectId, onClose }) {
         </Notice>
       )}
       {error && <Notice tone="error">{error}</Notice>}
+      {allowed && (
+        <FormField label="Reason for the decision" hint="Recorded with your name.">
+          {(f) => (
+            <textarea {...f.control} className="input textarea" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
+          )}
+        </FormField>
+      )}
       {!ready ? (
         <LoadingState label="Loading the lines" />
       ) : (
         <div className="compare">
-          <Side title="Already stored" doc={existing} lines={diff.earlier} showMoney={showMoney} />
-          <Side title="New upload" doc={candidate} lines={diff.later} showMoney={showMoney} />
+          <Side title="Already stored" doc={existing} lines={diff.earlier} />
+          <Side title="New upload" doc={candidate} lines={diff.later} />
         </div>
       )}
     </Dialog>

@@ -49,7 +49,7 @@ export function StageActions({ snapshot }) {
           </button>
           <small>
             {!can(actor, 'confirm_intake')
-              ? 'Only the project lead can confirm the lines.'
+              ? 'Only an Admin can confirm the lines.'
               : intake.state !== 'todo'
                 ? intake.reason
                 : 'You are confirming that the lines match the order.'}
@@ -98,7 +98,7 @@ export function StageActions({ snapshot }) {
               Reopen intake review
             </button>
           )}
-          {!can(actor, 'reopen') && <small>Only the project lead can reopen a confirmed review.</small>}
+          {!can(actor, 'reopen') && <small>Only an Admin can reopen a confirmed review.</small>}
         </div>
       )}
 

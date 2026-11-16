@@ -4,7 +4,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { createFixtures } from '@/data/fixtures';
 import { createLocalApi } from '@/data/local/localApi';
 import { createMemoryStorage } from '@/data/local/storage';
-import { INTAKE, LEAD, renderApp } from '@/test/providers.jsx';
+import { ENGINEER, ADMIN, renderApp } from '@/test/providers.jsx';
 import NewProjectPage from './NewProjectPage.jsx';
 import ProjectPage from './ProjectPage.jsx';
 import ProjectsPage from './ProjectsPage.jsx';
@@ -36,7 +36,7 @@ async function projectWith(api, patch = {}) {
   return api.createProject({
     customer: { name: 'Test Customer', gstin: '27AAAAA0000A1Z5' },
     entryPath: 'post_audit',
-    actor: INTAKE,
+    actor: ENGINEER,
     ...patch,
   });
 }
@@ -55,7 +55,7 @@ describe('projects list', () => {
 
   it('filters by search text and entry path', async () => {
     const api = apiRecognising('pi');
-    await api.loadSampleProjects({ actor: INTAKE });
+    await api.loadSampleProjects({ actor: ENGINEER });
     renderApp(<AppRoutes />, { path: '/projects', api });
     await screen.findByText('PRJ-2627-0001');
     fireEvent.change(screen.getByLabelText('Search projects'), { target: { value: 'engineers' } });
@@ -67,15 +67,15 @@ describe('projects list', () => {
     expect(screen.queryByText('PRJ-2627-0002')).not.toBeInTheDocument();
   });
 
-  it('asks for confirmation before resetting, and only the project lead can reset', async () => {
+  it('asks for confirmation before resetting, and only the Admin can reset', async () => {
     const api = apiRecognising('pi');
     await projectWith(api);
-    const view = renderApp(<AppRoutes />, { path: '/projects', api, actor: INTAKE });
+    const view = renderApp(<AppRoutes />, { path: '/projects', api, actor: ENGINEER });
     await screen.findByText('PRJ-2627-0001');
     expect(screen.getByRole('button', { name: 'Reset project data' })).toBeDisabled();
     view.unmount();
 
-    renderApp(<AppRoutes />, { path: '/projects', api, actor: LEAD });
+    renderApp(<AppRoutes />, { path: '/projects', api, actor: ADMIN });
     await screen.findByText('PRJ-2627-0001');
     fireEvent.click(screen.getByRole('button', { name: 'Reset project data' }));
     expect(screen.getByRole('alertdialog', { name: 'Reset all project data?' })).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('new project', () => {
 });
 
 describe('uploading and reviewing', () => {
-  async function openDocuments(api, actor = LEAD) {
+  async function openDocuments(api, actor = ADMIN) {
     const project = await projectWith(api);
     renderApp(<AppRoutes />, { path: `/projects/${project.id}/documents`, api, actor });
     await screen.findByRole('heading', { name: 'Documents' });
@@ -136,7 +136,7 @@ describe('uploading and reviewing', () => {
 
     fireEvent.click(screen.getByRole('link', { name: /Order lines/ }));
     expect(await screen.findByLabelText('Description of line 1')).toBeInTheDocument();
-    expect(screen.getByLabelText('Rate of line 1')).toHaveValue('175893.00');
+    expect(screen.queryByLabelText('Rate of line 1')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Kind of line 7')).toHaveValue('product');
     expect(screen.getByLabelText('Module of line 7')).toHaveValue('firewall');
 
@@ -152,9 +152,9 @@ describe('uploading and reviewing', () => {
     expect((await api.getProject(project.id)).modules).toHaveLength(5);
   });
 
-  it('hides money from the intake coordinator and keeps the confirmation for the project lead', async () => {
+  it('hides money from the intake coordinator and keeps the confirmation for the Admin', async () => {
     const api = apiRecognising('pi');
-    await openDocuments(api, INTAKE);
+    await openDocuments(api, ENGINEER);
     fireEvent.change(orderInput(), { target: { files: [pdf()] } });
     await screen.findByText(/was recognised/);
     fireEvent.click(screen.getByRole('link', { name: /Order lines/ }));
@@ -162,7 +162,7 @@ describe('uploading and reviewing', () => {
     expect(screen.queryByLabelText('Rate of line 1')).not.toBeInTheDocument();
     expect(screen.queryByText(/Grand total/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirm intake lines' })).toBeDisabled();
-    expect(screen.getByText('Only the project lead can confirm the lines.')).toBeInTheDocument();
+    expect(screen.getByText('Only an Admin can confirm the lines.')).toBeInTheDocument();
   });
 
   it('asks for a reason before a classification changes and records it', async () => {
@@ -194,8 +194,8 @@ describe('uploading and reviewing', () => {
     fireEvent.change(within(dialog).getByLabelText('Document number'), { target: { value: 'PI/9' } });
     fireEvent.change(within(dialog).getByLabelText('Document date'), { target: { value: '2026-11-10' } });
     fireEvent.change(within(dialog).getByLabelText('Description'), { target: { value: 'QNAP TS-464 NAS' } });
-    fireEvent.change(within(dialog).getByLabelText('Rate'), { target: { value: '45,000' } });
-    expect(within(dialog).getByLabelText('Amount')).toHaveValue('45000.00');
+    expect(within(dialog).queryByLabelText('Rate')).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('Amount')).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save details' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(await screen.findByText('PI/9')).toBeInTheDocument();
@@ -214,13 +214,13 @@ describe('uploading and reviewing', () => {
     expect(await within(dialog).findByText('Enter the document number.')).toBeInTheDocument();
   });
 
-  it('rejects a file that is not a PDF with a clear message', async () => {
+  it('rejects a file type that is not supported with a clear message', async () => {
     const api = apiRecognising('pi');
     await openDocuments(api);
     fireEvent.change(orderInput(), {
-      target: { files: [new File(['x'], 'order.docx')] },
+      target: { files: [new File(['x'], 'order.png')] },
     });
-    expect(await screen.findByText('Only PDF files can be uploaded.')).toBeInTheDocument();
+    expect(await screen.findByText('Only PDF, Word (.docx) or Excel (.xlsx) files can be uploaded.')).toBeInTheDocument();
   });
 
   it('holds a repeated document for a decision and replaces the earlier one', async () => {
@@ -233,6 +233,7 @@ describe('uploading and reviewing', () => {
     const dialog = await screen.findByRole('alertdialog');
     expect(within(dialog).getByRole('region', { name: 'Already stored' })).toBeInTheDocument();
     expect(within(dialog).getByRole('region', { name: 'New upload' })).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText('Reason for the decision'), { target: { value: 'Customer sent a corrected copy' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Replace the earlier one' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
     expect(await screen.findByText('Replaced, kept as history')).toBeInTheDocument();

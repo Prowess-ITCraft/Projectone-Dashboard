@@ -4,7 +4,6 @@ import { Card, EmptyState, Icon, Notice } from '@/components';
 import { useActor } from '@/app/actor';
 import { useApi } from '@/data/api';
 import { DOCUMENT_TYPES } from '@/domain/documents';
-import { formatINR } from '@/domain/money';
 import { can } from '@/domain/permissions';
 import { ORDER_DOCUMENT_TYPES } from '@/domain/stages';
 import { validateDocument } from '@/domain/validation';
@@ -15,34 +14,11 @@ import { ReasonDialog } from './ReasonDialog';
 import { StageActions } from './StageActions';
 import { formatDate } from './labels';
 
-function Totals({ totals }) {
-  if (!totals) return null;
-  const rows = [
-    ['Subtotal', totals.subtotalPaise],
-    ['GST', totals.gstPaise],
-    ['Round off', totals.roundOffPaise],
-    ['Grand total', totals.grandPaise],
-  ].filter(([, v]) => v !== null && v !== undefined);
-  return (
-    <dl className="totals">
-      {rows.map(([label, v]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd className="num">{formatINR(v)}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 function OrderSection({ doc, lines, snapshot, onField, onClassify, onAccept, onDelete, onError, onAdd }) {
   const { actor } = useActor();
   const [showOriginal, setShowOriginal] = useState(false);
-  const showMoney = can(actor, 'view_financials');
   const { project } = snapshot;
   const issues = validateDocument(doc, lines);
-  const visible = issues.filter((i) => showMoney || !i.financial);
-  const hiddenCount = issues.length - visible.length;
   const products = lines.filter((l) => l.kind === 'product' || l.kind === 'subscription');
 
   return (
@@ -61,12 +37,11 @@ function OrderSection({ doc, lines, snapshot, onField, onClassify, onAccept, onD
         <Notice tone="info">This order was a call confirmation: there is no customer PO number.</Notice>
       )}
       {doc.referencePi && <Notice tone="info">This order refers to proforma invoice {doc.referencePi}.</Notice>}
-      {visible.map((i) => (
+      {issues.map((i) => (
         <Notice key={i.id} tone="warning">
           {i.message}
         </Notice>
       ))}
-      {hiddenCount > 0 && <Notice tone="warning">The totals on this document need checking by the project lead.</Notice>}
 
       <div className={`review${showOriginal ? ' with-original' : ''}`}>
         {showOriginal && <DocumentViewer fileId={doc.fileId} title={`Original ${doc.fileName}`} className="viewer-tall" />}
@@ -74,7 +49,6 @@ function OrderSection({ doc, lines, snapshot, onField, onClassify, onAccept, onD
           <LineTable
             lines={lines}
             products={products}
-            showMoney={showMoney}
             textLocked={Boolean(project.intake)}
             classLocked={Boolean(project.classify)}
             canEdit={can(actor, 'edit_lines')}
@@ -93,7 +67,6 @@ function OrderSection({ doc, lines, snapshot, onField, onClassify, onAccept, onD
           )}
         </div>
       </div>
-      {showMoney && <Totals totals={doc.totals} />}
     </Card>
   );
 }

@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { UploadSimpleIcon } from '@phosphor-icons/react';
 import { Card, FormField, SegmentedControl } from '@/components';
+import { ACCEPT_ATTRIBUTE } from '@/domain/files';
 
 /*
   A drop zone for one kind of document. The real control is a file input that is hidden visually but still reachable by
@@ -39,13 +40,13 @@ export function UploadCard({ title, hint, types, disabled = false, busy = false,
         }}
       >
         <UploadSimpleIcon size={22} aria-hidden="true" />
-        <span className="strong">{busy ? 'Adding the file' : 'Choose a PDF or drop it here'}</span>
-        <small>PDF only, up to 25 MB</small>
+        <span className="strong">{busy ? 'Adding the file' : 'Choose a file or drop it here'}</span>
+        <small>PDF, Word or Excel, up to 25 MB</small>
         <input
           id={`${id}-file`}
-          aria-label={`Choose a PDF or drop it here, ${title}`}
+          aria-label={`Choose a file or drop it here, ${title}`}
           type="file"
-          accept=".pdf,application/pdf"
+          accept={ACCEPT_ATTRIBUTE}
           className="sr-only"
           disabled={disabled || busy}
           onChange={(e) => {
