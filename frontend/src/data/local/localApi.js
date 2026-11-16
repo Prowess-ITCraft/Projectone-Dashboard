@@ -2,13 +2,13 @@ import { applyAddRow, applyDeleteRow, applyPatchRow, applyTask, emptyChecklistSt
 import { classifyLines, DEFAULT_RULES } from '@/domain/classification';
 import { DOCUMENT_TYPES, extractionToDocument } from '@/domain/documents';
 import { ACCEPTED_TEXT, FILE_KINDS, fileKind } from '@/domain/files';
-import { ENTRY_PATHS } from '@/domain/projects';
+import { ENTRY_PATHS, lockedByStatus, siteKey, statusChangeProblem, statusOf } from '@/domain/projects';
 import { financialYear, customerNumber, newId, projectNumber } from '@/domain/ids';
 import { actorLabel, can } from '@/domain/permissions';
 import { splitScope } from '@/domain/scope';
 import { computeTracker, ORDER_DOCUMENT_TYPES } from '@/domain/stages';
-import { normaliseGstin } from '@/domain/gstin';
-import { matchCustomers } from '@/domain/customers';
+import { isValidGstin, normaliseGstin } from '@/domain/gstin';
+import { isAudited, isValidEmail, matchCustomers } from '@/domain/customers';
 import { sha256Hex } from '@/lib/sha256';
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -58,7 +58,24 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     return DEFAULT_RULES;
   }
 
-  const requireProject = async (id) => (await storage.get('projects', id)) ?? fail('That project no longer exists.');
+  // Projects stored before sites and status existed read as in progress with no sites
+  const normal = (project) => ({ status: 'in_progress', statusReason: '', siteIds: [], ...project });
+  const requireProject = async (id) => normal((await storage.get('projects', id)) ?? fail('That project no longer exists.'));
+  const requireCustomer = async (id) => (await storage.get('customers', id)) ?? fail('That customer no longer exists.');
+  /* A GSTIN must be valid and must not belong to another customer */
+  async function checkGstin(gstin, customerId) {
+    const value = normaliseGstin(gstin);
+    if (!value) return '';
+    if (!isValidGstin(value)) fail('This GSTIN is not in a valid format (15 characters).');
+    const other = (await all('customers')).find((c) => c.id !== customerId && normaliseGstin(c.gstin) === value);
+    if (other) fail(`This GSTIN already belongs to ${other.name} (${other.number}).`);
+    return value;
+  }
+
+  const requireOpen = (project) => {
+    const why = lockedByStatus(project);
+    if (why) fail(why);
+  };
   const requireDocument = async (id) => (await storage.get('documents', id)) ?? fail('That document no longer exists.');
   const requireLine = async (id) => (await storage.get('lines', id)) ?? fail('That line no longer exists.');
   const need = (actor, action, message) => can(actor, action) || fail(message);
@@ -150,17 +167,130 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     }
   }
 
-  async function snapshot(projectId) {
-    const project = await requireProject(projectId);
-    const customer = await storage.get('customers', project.customerId);
-    const documents = (await byProject('documents', projectId)).sort((a, b) => a.createdAt - b.createdAt);
-    const lines = await liveLines(projectId);
-    const modules = (await byProject('modules', projectId)).sort((a, b) => a.createdAt - b.createdAt);
-    const entitlements = await byProject('entitlements', projectId);
-    return { project, customer, documents, lines, modules, entitlements, tracker: computeTracker({ project, documents, lines }) };
+  const groupBy = (rows, key) => {
+    const map = new Map();
+    rows.forEach((r) => {
+      const k = r[key];
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
+    });
+    return map;
+  };
+
+  /*
+    Reads every store once and indexes it, so a list of many projects costs a fixed number of reads instead of
+    several per project. Snapshots are then built from memory.
+  */
+  async function loadIndex() {
+    const [projects, customers, sites, documents, lines, modules, entitlements, audit] = await Promise.all(
+      ['projects', 'customers', 'sites', 'documents', 'lines', 'modules', 'entitlements', 'audit'].map((st) => all(st)),
+    );
+    const normalProjects = projects.map(normal);
+    const docsByProject = groupBy(documents, 'projectId');
+    const projectIdsByCustomer = groupBy(normalProjects, 'customerId');
+    const docsByCustomer = new Map([...projectIdsByCustomer].map(([cid, ps]) => [cid, ps.flatMap((x) => docsByProject.get(x.id) ?? [])]));
+    const lastAt = new Map();
+    audit.forEach((a) => a.projectId && lastAt.set(a.projectId, Math.max(lastAt.get(a.projectId) ?? 0, a.at)));
+    return {
+      projects: normalProjects,
+      customers: new Map(customers.map((c) => [c.id, c])),
+      customerList: customers,
+      sites: new Map(sites.map((x) => [x.id, x])),
+      siteList: sites,
+      docsByProject,
+      docsByCustomer,
+      linesByProject: groupBy(lines, 'projectId'),
+      modulesByProject: groupBy(modules, 'projectId'),
+      entitlementsByProject: groupBy(entitlements, 'projectId'),
+      projectsByCustomer: projectIdsByCustomer,
+      lastAt,
+      audit,
+    };
   }
 
+  function buildSnapshot(project, ix) {
+    const documents = [...(ix.docsByProject.get(project.id) ?? [])].sort((a, b) => a.createdAt - b.createdAt);
+    const activeIds = new Set(documents.filter((d) => d.active && !d.pendingDuplicate).map((d) => d.id));
+    const lines = (ix.linesByProject.get(project.id) ?? [])
+      .filter((l) => !l.archived && activeIds.has(l.documentId))
+      .sort((a, b) => a.documentOrder - b.documentOrder || a.no - b.no);
+    const modules = [...(ix.modulesByProject.get(project.id) ?? [])].sort((a, b) => a.createdAt - b.createdAt);
+    return {
+      project,
+      customer: ix.customers.get(project.customerId),
+      sites: project.siteIds.map((id) => ix.sites.get(id)).filter(Boolean),
+      documents,
+      lines,
+      modules,
+      entitlements: ix.entitlementsByProject.get(project.id) ?? [],
+      audited: isAudited(ix.docsByCustomer.get(project.customerId) ?? []),
+      lastActivityAt: ix.lastAt.get(project.id) ?? project.createdAt,
+      tracker: computeTracker({ project, documents, lines }),
+    };
+  }
+
+  async function snapshot(projectId) {
+    const project = await requireProject(projectId);
+    return buildSnapshot(project, await loadIndex());
+  }
+
+  const cleanName = (name) =>
+    String(name ?? '')
+      .trim()
+      .replace(/\s+/g, ' ');
+
+  /* Adds a site to a customer. Names are unique within the customer, ignoring case and extra spaces. */
+  async function addSiteRecord(customerId, site, actor) {
+    const name = cleanName(site?.name);
+    if (!name) fail('Give the site a name.');
+    const existing = (await all('sites')).filter((x) => x.customerId === customerId);
+    if (existing.some((x) => siteKey(x.name) === siteKey(name))) fail(`This customer already has a site called ${name}.`);
+    const created = {
+      id: newId(),
+      customerId,
+      name,
+      address: site.address?.trim() ?? '',
+      contact: site.contact?.trim() ?? '',
+      createdAt: now(),
+    };
+    await storage.put('sites', created.id, created);
+    await record(actor, 'site_added', null, { customerId, subject: name, reason: null });
+    return created;
+  }
+
+  /* The chosen sites must all belong to the customer of the project */
+  async function checkSites(customerId, siteIds) {
+    const ids = [...new Set(siteIds ?? [])];
+    for (const id of ids) {
+      const site = await storage.get('sites', id);
+      if (!site || site.customerId !== customerId) fail('A chosen site does not belong to this customer.');
+    }
+    return ids;
+  }
+
+  /* Once: free-text locations from before sites existed become sites of their customer. Nothing is lost. */
+  async function moveLocationsToSites() {
+    if (await storage.get('meta', 'schema:sites')) return;
+    for (const project of await all('projects')) {
+      if (project.siteIds || !project.location?.trim()) continue;
+      const name = cleanName(project.location);
+      const sites = (await all('sites')).filter((x) => x.customerId === project.customerId);
+      let site = sites.find((x) => siteKey(x.name) === siteKey(name));
+      if (!site) {
+        site = { id: newId(), customerId: project.customerId, name, address: '', contact: '', createdAt: now() };
+        await storage.put('sites', site.id, site);
+      }
+      const rest = { ...project };
+      delete rest.location;
+      await storage.put('projects', project.id, { ...rest, siteIds: [site.id] });
+    }
+    await storage.put('meta', 'schema:sites', { at: now() });
+  }
+
+  const migrated = write(moveLocationsToSites);
+
   const api = {
+    ready: () => migrated,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -171,20 +301,127 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     listCustomers: async () => (await all('customers')).sort((a, b) => a.name.localeCompare(b.name)),
     findCustomerMatches: async ({ gstin, name }) => matchCustomers(await all('customers'), { gstin, name }),
 
+    listSites: async (customerId) =>
+      (await all('sites')).filter((x) => x.customerId === customerId).sort((a, b) => a.name.localeCompare(b.name)),
+
+    async listCustomerSummaries() {
+      const ix = await loadIndex();
+      return [...ix.customerList]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((customer) => {
+          const own = ix.projectsByCustomer.get(customer.id) ?? [];
+          const times = own.map((p) => ix.lastAt.get(p.id) ?? p.createdAt);
+          return {
+            customer,
+            sites: ix.siteList.filter((x) => x.customerId === customer.id),
+            projectCount: own.length,
+            openProjectCount: own.filter((p) => ['in_progress', 'on_hold'].includes(statusOf(p))).length,
+            audited: isAudited(ix.docsByCustomer.get(customer.id) ?? []),
+            lastActivityAt: times.length ? Math.max(...times) : customer.createdAt,
+          };
+        });
+    },
+
+    async getCustomer(id) {
+      const customer = await requireCustomer(id);
+      const ix = await loadIndex();
+      const sites = ix.siteList.filter((x) => x.customerId === id).sort((a, b) => a.name.localeCompare(b.name));
+      const projects = [...(ix.projectsByCustomer.get(id) ?? [])]
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((p) => buildSnapshot(p, ix));
+      const numberOf = Object.fromEntries(projects.map((x) => [x.project.id, x.project.number]));
+      const documents = (ix.docsByCustomer.get(id) ?? [])
+        .filter((d) => !d.pendingDuplicate)
+        .map((d) => ({ ...d, projectNumber: numberOf[d.projectId] }))
+        .sort((a, b) => b.createdAt - a.createdAt);
+      const activity = ix.audit.filter((a) => a.customerId === id && !a.projectId).sort((a, b) => b.at - a.at);
+      return { customer, sites, projects, documents, audited: isAudited(documents), activity };
+    },
+
+    updateCustomer: (id, patch, { actor }) =>
+      write(async () => {
+        need(actor, 'create_project', 'Your role cannot change customer details.');
+        const customer = await requireCustomer(id);
+        const next = { ...customer };
+        if (patch.name !== undefined) {
+          if (!cleanName(patch.name)) fail('The customer name cannot be blank.');
+          next.name = cleanName(patch.name);
+        }
+        if (patch.gstin !== undefined) next.gstin = await checkGstin(patch.gstin, id);
+        ['address', 'contact', 'email'].forEach((k) => patch[k] !== undefined && (next[k] = String(patch[k]).trim()));
+        if (next.email && !isValidEmail(next.email)) fail('This email address is not in a valid format.');
+        const fields = ['name', 'gstin', 'address', 'contact', 'email'].filter((k) => next[k] !== customer[k]);
+        if (!fields.length) return customer;
+        await storage.put('customers', id, next);
+        await record(actor, 'customer_updated', null, {
+          customerId: id,
+          subject: next.name,
+          before: Object.fromEntries(fields.map((k) => [k, customer[k]])),
+          after: Object.fromEntries(fields.map((k) => [k, next[k]])),
+          reason: null,
+        });
+        return next;
+      }),
+
+    addSite: (customerId, site, { actor }) =>
+      write(async () => {
+        need(actor, 'create_project', 'Your role cannot add sites.');
+        await requireCustomer(customerId);
+        return addSiteRecord(customerId, site, actor);
+      }),
+
+    updateSite: (siteId, patch, { actor }) =>
+      write(async () => {
+        need(actor, 'create_project', 'Your role cannot change sites.');
+        const site = (await storage.get('sites', siteId)) ?? fail('That site no longer exists.');
+        const next = { ...site };
+        if (patch.name !== undefined) {
+          const name = cleanName(patch.name);
+          if (!name) fail('Give the site a name.');
+          const others = (await all('sites')).filter((x) => x.customerId === site.customerId && x.id !== siteId);
+          if (others.some((x) => siteKey(x.name) === siteKey(name))) fail(`This customer already has a site called ${name}.`);
+          next.name = name;
+        }
+        ['address', 'contact'].forEach((k) => patch[k] !== undefined && (next[k] = String(patch[k]).trim()));
+        await storage.put('sites', siteId, next);
+        await record(actor, 'site_updated', null, {
+          customerId: site.customerId,
+          subject: next.name,
+          before: { name: site.name, address: site.address, contact: site.contact },
+          after: { name: next.name, address: next.address, contact: next.contact },
+          reason: null,
+        });
+        return next;
+      }),
+
     async listProjects() {
-      const projects = (await all('projects')).sort((a, b) => b.createdAt - a.createdAt);
-      return Promise.all(projects.map((p) => snapshot(p.id)));
+      const ix = await loadIndex();
+      return [...ix.projects].sort((a, b) => b.createdAt - a.createdAt).map((p) => buildSnapshot(p, ix));
     },
     getProject: (id) => snapshot(id),
 
-    createProject: ({ customer, entryPath, purpose = '', location = '', actor }) =>
+    createProject: ({ customer, entryPath, purpose = '', siteIds = [], newSites = [], actor }) =>
       write(async () => {
         need(actor, 'create_project', 'Your role cannot create projects.');
         if (entryPath && !ENTRY_PATHS[entryPath]) fail('Choose one of the listed entry paths.');
-        let customerRecord;
-        if (customer?.id) customerRecord = (await storage.get('customers', customer.id)) ?? fail('That customer no longer exists.');
-        else {
+        // Every check runs before anything is saved, so a refused request never leaves a customer without a project
+        const existing = customer?.id ? await requireCustomer(customer.id) : null;
+        if (!existing) {
           if (!customer?.name?.trim()) fail('Enter the customer name.');
+          await checkGstin(customer.gstin, null);
+          if (siteIds.length) fail('A chosen site does not belong to this customer.');
+          if (customer.email?.trim() && !isValidEmail(customer.email)) fail('This email address is not in a valid format.');
+        }
+        const chosenSites = existing ? await checkSites(existing.id, siteIds) : [];
+        const drafts = newSites.map((x) => ({ ...x, name: cleanName(x?.name) })).filter((x) => x.name);
+        const taken = new Set(existing ? (await all('sites')).filter((x) => x.customerId === existing.id).map((x) => siteKey(x.name)) : []);
+        for (const d of drafts) {
+          if (taken.has(siteKey(d.name))) fail(`A site called ${d.name} is already taken or given more than once.`);
+          taken.add(siteKey(d.name));
+        }
+
+        let customerRecord = existing;
+        if (!existing) {
           customerRecord = {
             id: newId(),
             number: customerNumber(await counter('counter:customer')),
@@ -197,6 +434,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           };
           await storage.put('customers', customerRecord.id, customerRecord);
         }
+        const chosen = [...chosenSites];
+        for (const site of drafts) chosen.push((await addSiteRecord(customerRecord.id, site, actor)).id);
         const fy = financialYear(new Date(now()));
         const project = {
           id: newId(),
@@ -204,13 +443,15 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           customerId: customerRecord.id,
           entryPath: entryPath || null,
           purpose: purpose.trim(),
-          location: location.trim(),
+          siteIds: chosen,
+          status: 'in_progress',
+          statusReason: '',
           intake: null,
           classify: null,
           createdAt: now(),
         };
         await storage.put('projects', project.id, project);
-        await record(actor, 'project_created', project.id, { reason: null });
+        await record(actor, 'project_created', project.id, { customerId: customerRecord.id, reason: null });
         return project;
       }),
 
@@ -218,12 +459,38 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'create_project', 'Your role cannot change projects.');
         const project = await requireProject(id);
+        requireOpen(project);
         if (patch.entryPath !== undefined && patch.entryPath !== null && !ENTRY_PATHS[patch.entryPath])
           fail('Choose one of the listed entry paths.');
         const next = { ...project };
-        ['entryPath', 'purpose', 'location'].forEach((k) => patch[k] !== undefined && (next[k] = patch[k]));
+        ['entryPath', 'purpose'].forEach((k) => patch[k] !== undefined && (next[k] = patch[k]));
+        if (patch.siteIds !== undefined) next.siteIds = await checkSites(project.customerId, patch.siteIds);
         await storage.put('projects', id, next);
-        await record(actor, 'project_updated', id, { before: { entryPath: project.entryPath }, after: { entryPath: next.entryPath } });
+        await record(actor, 'project_updated', id, {
+          before: { entryPath: project.entryPath, siteIds: project.siteIds },
+          after: { entryPath: next.entryPath, siteIds: next.siteIds },
+          reason: null,
+        });
+        return next;
+      }),
+
+    setProjectStatus: (projectId, status, { actor, reason = '' }) =>
+      write(async () => {
+        need(actor, 'set_project_status', 'Only an Admin can change the project status.');
+        const project = await requireProject(projectId);
+        const documents = await byProject('documents', projectId);
+        const lines = await liveLines(projectId);
+        const tracker = computeTracker({ project: { ...project, status: 'in_progress' }, documents, lines });
+        const allStagesDone = tracker.every((stage) => stage.state === 'done');
+        const problem = statusChangeProblem(statusOf(project), status, { allStagesDone, reason });
+        if (problem) fail(problem);
+        const next = { ...project, status, statusReason: status === 'in_progress' ? '' : reason.trim() };
+        await storage.put('projects', projectId, next);
+        await record(actor, 'status_changed', projectId, {
+          before: { status: statusOf(project) },
+          after: { status },
+          reason: reason.trim() || null,
+        });
         return next;
       }),
 
@@ -235,6 +502,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         if (!kind) fail(`Only ${ACCEPTED_TEXT} files can be uploaded.`);
         if (file.size > MAX_FILE_BYTES) fail('This file is larger than 25 MB.');
         const project = await requireProject(projectId);
+        requireOpen(project);
         if (ORDER_DOCUMENT_TYPES.includes(type) && project.intake)
           fail('The intake review is confirmed. Reopen it before adding an order document.');
 
@@ -289,6 +557,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         need(actor, 'edit_lines', 'Your role cannot edit documents.');
         const doc = await requireDocument(documentId);
         const project = await requireProject(doc.projectId);
+        requireOpen(project);
         if (!doc.active && !doc.pendingDuplicate) fail('This document is history and cannot be changed.');
         if (project.intake && ORDER_DOCUMENT_TYPES.includes(doc.type))
           fail('The intake review is confirmed. Reopen it to change this document.');
@@ -325,6 +594,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         if (decision !== 'cancel' && decision !== 'replace') fail('Choose to replace the earlier document or cancel the new one.');
         if (!reason?.trim()) fail('Give a reason for the decision.');
         const doc = await requireDocument(documentId);
+        requireOpen(await requireProject(doc.projectId));
         if (!doc.pendingDuplicate) fail('This document is not waiting for a decision.');
         const existing = await requireDocument(doc.duplicateOfId);
         if (decision === 'cancel') {
@@ -357,6 +627,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         need(actor, 'upload', 'Your role cannot remove documents.');
         const doc = await requireDocument(documentId);
         const project = await requireProject(doc.projectId);
+        requireOpen(project);
         if (project.intake && doc.active && ORDER_DOCUMENT_TYPES.includes(doc.type))
           fail('The intake review is confirmed. Reopen it to remove this document.');
         await dropLines(doc.id);
@@ -376,6 +647,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         const line = await requireLine(lineId);
         const project = await requireProject(line.projectId);
+        requireOpen(project);
         const classification = ['kind', 'moduleType', 'pairedToLineId'].some((k) => k in patch);
         const next = { ...line, ...patch };
         if (classification) {
@@ -409,6 +681,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         need(actor, 'edit_lines', 'Your role cannot edit lines.');
         const doc = await requireDocument(documentId);
         const project = await requireProject(doc.projectId);
+        requireOpen(project);
         if (project.intake) fail('The intake review is confirmed. Reopen it to add lines.');
         const existing = (await all('lines')).filter((l) => l.documentId === documentId && !l.archived);
         const no = Math.max(0, ...existing.map((l) => l.no)) + 1;
@@ -434,6 +707,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         need(actor, 'edit_lines', 'Your role cannot edit lines.');
         const line = await requireLine(lineId);
         const project = await requireProject(line.projectId);
+        requireOpen(project);
         if (project.intake) fail('The intake review is confirmed. Reopen it to delete lines.');
         const dependants = (await byProject('lines', line.projectId)).filter((l) => l.pairedToLineId === lineId);
         await Promise.all(dependants.map((l) => storage.put('lines', l.id, { ...l, pairedToLineId: null })));
@@ -445,6 +719,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'classify', 'Your role cannot classify lines.');
         const project = await requireProject(projectId);
+        requireOpen(project);
         if (project.classify) fail('Classification is confirmed. Reopen it to run the rules again.');
         const rules = await getRules();
         for (const doc of await activeDocuments(projectId)) {
@@ -473,6 +748,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'confirm_intake', 'Only an Admin can confirm the intake lines.');
         const project = await requireProject(projectId);
+        requireOpen(project);
         const docs = await byProject('documents', projectId);
         const orders = docs.filter((d) => d.active && ORDER_DOCUMENT_TYPES.includes(d.type));
         if (docs.some((d) => d.pendingDuplicate)) fail('A document is waiting for a duplicate decision.');
@@ -491,6 +767,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         need(actor, 'reopen', 'Only an Admin can reopen the intake review.');
         if (!reason?.trim()) fail('Give a reason for reopening the intake review.');
         const project = await requireProject(projectId);
+        requireOpen(project);
         if (!project.intake) fail('The intake review is not confirmed.');
         await resetConfirmations(projectId, 'intake');
         await record(actor, 'intake_reopened', projectId, { reason: reason.trim() });
@@ -500,6 +777,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'confirm_classification', 'Your role cannot confirm the classification.');
         const project = await requireProject(projectId);
+        requireOpen(project);
         if (!project.intake) fail('Confirm the intake lines first.');
         const lines = await liveLines(projectId);
         if (lines.some((l) => l.kind === 'unknown')) fail('Classify every unknown line first.');
@@ -518,6 +796,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         need(actor, 'reopen', 'Only an Admin can reopen the classification.');
         if (!reason?.trim()) fail('Give a reason for reopening the classification.');
         const project = await requireProject(projectId);
+        requireOpen(project);
         if (!project.classify) fail('The classification is not confirmed.');
         await resetConfirmations(projectId, 'classify');
         await record(actor, 'classification_reopened', projectId, { reason: reason.trim() });
@@ -527,6 +806,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'set_delivery', 'Only an Admin can record delivery.');
         const module = (await storage.get('modules', moduleId)) ?? fail('That module no longer exists.');
+        requireOpen(await requireProject(module.projectId));
         if (status !== 'awaiting_delivery' && status !== 'delivered') fail('Choose a delivery status.');
         const today = new Date(now() + 5.5 * 36e5).toISOString().slice(0, 10); // the date in India
         const date = status === 'delivered' ? deliveredOn || today : null;
@@ -542,6 +822,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       write(async () => {
         need(actor, 'classify', 'Your role cannot assign services.');
         const line = await requireLine(lineId);
+        requireOpen(await requireProject(line.projectId));
         const module = (await storage.get('modules', moduleId)) ?? fail('That module no longer exists.');
         await storage.put('lines', lineId, {
           ...line,
@@ -644,11 +925,16 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
             customerId: customerRecord.id,
             entryPath,
             purpose: '',
-            location: '',
+            siteIds: [],
+            status: 'in_progress',
+            statusReason: '',
             intake: null,
             classify: null,
             createdAt: now(),
           };
+          const hasSite = (await all('sites')).find((x) => x.customerId === customerRecord.id && siteKey(x.name) === 'main site');
+          const site = hasSite ?? (await addSiteRecord(customerRecord.id, { name: 'Main site', address: customer.address }, actor));
+          project.siteIds = [site.id];
           await storage.put('projects', project.id, project);
           const docs = [{ document, lines }];
           if (prismsuite) docs.push(extractionToDocument(prismsuite));
@@ -657,7 +943,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
               id: newId(),
               projectId: project.id,
               fileId: null,
-              fileName: `Sample ${DOCUMENT_TYPES[d.document.type].toLowerCase()} (no file)`,
+              fileName: `Sample ${DOCUMENT_TYPES[d.document.type].toLowerCase().replace('prismsuite', 'PrismSuite')} (no file)`,
               fileHash: null,
               status: d.document.type === 'prismsuite' ? 'attached' : 'parsed',
               parser: { name: 'sample extraction', version: '1' },
