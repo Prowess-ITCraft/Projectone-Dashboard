@@ -16,5 +16,35 @@ services:
       # container keeps its own Linux node_modules instead of the host's
       - frontend_node_modules:/app/node_modules
 
+  api:
+    build: ./backend
+    ports:
+      - '9666:9666'
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://projectone:projectone@postgres:5432/projectone
+      CORS_ORIGINS: http://localhost:9555
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: projectone
+      POSTGRES_PASSWORD: projectone
+      POSTGRES_DB: projectone
+    ports:
+      # published for local tools only; the api reaches it inside the compose network
+      - '9667:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U projectone -d projectone']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 volumes:
   frontend_node_modules:
+  postgres_data:
