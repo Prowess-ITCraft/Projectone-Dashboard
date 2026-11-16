@@ -9,6 +9,12 @@ Decisions the owner has not made. Each is built as data or behind an interface s
 - Additional roles beyond Admin and Engineer, who approves what, and any limits.
 - Sign-in method and two-factor rules. The acting-as picker is development only.
 
+## Customers and projects
+
+- Customer and site edits use the same permission as creating projects (Engineer and Admin). Confirm, or limit them to Admin.
+- How work is split across a project's sites in planning and in the completion report.
+- The PrismSuite logo file for the badge.
+
 ## Intake
 
 - How AMC and service-only invoices enter Project One, and what module an AMC creates.

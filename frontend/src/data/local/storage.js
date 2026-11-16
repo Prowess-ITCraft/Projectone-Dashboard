@@ -6,6 +6,7 @@ import { openDB } from 'idb';
 */
 export const STORES = [
   'customers',
+  'sites',
   'projects',
   'documents',
   'lines',
@@ -44,13 +45,13 @@ export function createMemoryStorage() {
 
 export function createIdbStorage(name = 'projectone') {
   /*
-    Version 2 removed financial fields and replaced the roles. The stored data was development and demo data only, so an
-    older database is emptied rather than converted.
+    Version 2 removed financial fields and replaced the roles; its upgrade empties an older database, which held only
+    development and demo data. Version 3 adds the sites store and keeps everything already stored.
   */
-  const db = openDB(name, 2, {
-    upgrade(database) {
-      [...database.objectStoreNames].forEach((s) => database.deleteObjectStore(s));
-      STORES.forEach((s) => database.createObjectStore(s));
+  const db = openDB(name, 3, {
+    upgrade(database, oldVersion) {
+      if (oldVersion < 2) [...database.objectStoreNames].forEach((s) => database.deleteObjectStore(s));
+      STORES.forEach((s) => !database.objectStoreNames.contains(s) && database.createObjectStore(s));
     },
   });
   return {

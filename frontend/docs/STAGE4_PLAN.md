@@ -1,6 +1,6 @@
 # Stage 4: Customers, projects and the stage tracker
 
-Status: rules and plan agreed with the owner on 17 Nov 2026. Not built yet. Building starts only when the owner says so.
+Status: rules and plan agreed with the owner on 17 Nov 2026. Built on 17 Nov 2026 (ADR 0013), awaiting the owner's review.
 
 Goal: a project exists, belongs to a customer, covers one or more of that customer's sites, and shows exactly where it stands. A returning customer is easy to find, with every order and project in one place.
 

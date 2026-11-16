@@ -9,13 +9,20 @@
     margin-bottom: var(--space-24);
     flex-wrap: wrap;
   }
+  /* titles are customer and project names, which can be long with no spaces; they wrap instead of widening the page */
+  .page-head > div {
+    min-width: 0;
+    max-width: 100%;
+  }
   .page-head h1 {
     margin: 0;
+    overflow-wrap: anywhere;
     font: var(--fw-medium) var(--fs-h1) / var(--lh-tight) var(--display);
     letter-spacing: var(--tracking-heading);
   }
   .page-head p {
     margin: var(--space-6) 0 0;
+    overflow-wrap: anywhere;
     color: var(--mut);
     font-size: var(--fs-lead);
     max-width: 620px;

@@ -20,6 +20,7 @@ const plainFile = (text, name = 'other.pdf') => new File([text], name, { type: '
 let api;
 let clock;
 beforeEach(() => {
+  gstinSeq = 0;
   clock = Date.UTC(2026, 10, 16, 12);
   const fixtures = createFixtures({ allowPrivate: false });
   const sampleHash = new Map();
@@ -35,7 +36,11 @@ beforeEach(() => {
   api.__register = async (type) => sampleHash.set(await sha256Hex(new TextEncoder().encode('sample').buffer), type);
 });
 
-async function newProject(entryPath = 'post_audit', customer = { name: 'Test Customer', gstin: '27AAAAA0000A1Z5' }) {
+// Each new customer gets its own GSTIN (the first is 27AAAAA0000A1Z5), because two customers may not share one
+let gstinSeq = 0;
+const nextGstin = () => `27AAAAA${String(gstinSeq++).padStart(4, '0')}A1Z5`;
+
+async function newProject(entryPath = 'post_audit', customer = { name: 'Test Customer', gstin: nextGstin() }) {
   return api.createProject({ customer, entryPath, actor: intake });
 }
 
@@ -375,6 +380,7 @@ describe('sample projects and reset', () => {
   });
 
   it('notifies subscribers after a write', async () => {
+    await api.ready();
     let calls = 0;
     const off = api.subscribe(() => calls++);
     await newProject();

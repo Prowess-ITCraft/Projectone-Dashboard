@@ -1,33 +1,89 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, DataTable, Dialog, ErrorState, Icon, LoadingState, Notice, PageHead, StatusBadge } from '@/components';
+import { Card, Dialog, ErrorState, Icon, LoadingState, Notice, PageHead } from '@/components';
 import { useActor } from '@/app/actor';
 import { useApi, useApiQuery } from '@/data/api';
-import { ENTRY_PATHS, entryPathLabel } from '@/domain/projects';
-import { currentStage } from '@/domain/stages';
+import { ALL, filterProjects, SORTS, sortProjects } from '@/domain/projectList';
+import { ENTRY_PATHS, PROJECT_STATUS } from '@/domain/projects';
+import { STAGES } from '@/domain/stages';
 import { can } from '@/domain/permissions';
 import { useAction } from '@/lib/useAction';
-import { formatDate } from './labels';
+import { useMediaQuery } from '@/lib/useMediaQuery';
+import { NARROW_QUERY } from '@/app/navigation';
+import { ProjectList } from './ProjectList';
 
-const COLUMNS = ['Project', 'Customer', 'Entry path', 'Stage', 'Documents', 'Created'];
+function Select({ label, value, onChange, children }) {
+  return (
+    <div className="sel">
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+        {children}
+      </select>
+      <Icon name="CaretDown" size={14} />
+    </div>
+  );
+}
 
 export default function ProjectsPage() {
   const api = useApi();
   const { actor } = useActor();
   const { data, error, loading, reload } = useApiQuery((a) => a.listProjects());
-  const [query, setQuery] = useState('');
-  const [path, setPath] = useState('all');
+  const [filters, setFilters] = useState({ query: '', entryPath: ALL, stage: ALL, status: ALL, customerId: ALL });
+  const [sort, setSort] = useState('activity');
   const [confirmReset, setConfirmReset] = useState(false);
   const [run, action] = useAction();
+  const set = (key) => (value) => setFilters((f) => ({ ...f, [key]: value }));
+  const narrow = useMediaQuery(NARROW_QUERY);
 
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (data ?? []).filter(
-      (s) =>
-        (path === 'all' || s.project.entryPath === path) &&
-        (!q || `${s.project.number} ${s.customer?.name ?? ''}`.toLowerCase().includes(q)),
-    );
-  }, [data, query, path]);
+  const rows = useMemo(() => sortProjects(filterProjects(data ?? [], filters), sort), [data, filters, sort]);
+  const customers = useMemo(() => {
+    const seen = new Map();
+    (data ?? []).forEach((s) => s.customer && seen.set(s.customer.id, s.customer.name));
+    return [...seen].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [data]);
+
+  const controls = (
+    <>
+      <Select label="Filter by entry path" value={filters.entryPath} onChange={set('entryPath')}>
+        <option value={ALL}>All entry paths</option>
+        {Object.entries(ENTRY_PATHS).map(([k, l]) => (
+          <option key={k} value={k}>
+            {l}
+          </option>
+        ))}
+      </Select>
+      <Select label="Filter by stage" value={filters.stage} onChange={set('stage')}>
+        <option value={ALL}>All stages</option>
+        {STAGES.map((st) => (
+          <option key={st.id} value={st.id}>
+            {st.name}
+          </option>
+        ))}
+      </Select>
+      <Select label="Filter by status" value={filters.status} onChange={set('status')}>
+        <option value={ALL}>All statuses</option>
+        {Object.entries(PROJECT_STATUS).map(([k, v]) => (
+          <option key={k} value={k}>
+            {v.label}
+          </option>
+        ))}
+      </Select>
+      <Select label="Filter by customer" value={filters.customerId} onChange={set('customerId')}>
+        <option value={ALL}>All customers</option>
+        {customers.map(([id, name]) => (
+          <option key={id} value={id}>
+            {name}
+          </option>
+        ))}
+      </Select>
+      <Select label="Sort by" value={sort} onChange={setSort}>
+        {Object.entries(SORTS).map(([k, l]) => (
+          <option key={k} value={k}>
+            {`Sort: ${l}`}
+          </option>
+        ))}
+      </Select>
+    </>
+  );
 
   if (loading) return <LoadingState label="Loading projects" />;
   if (error) return <ErrorState title="Projects could not be loaded" message={error.message} onRetry={reload} />;
@@ -59,60 +115,27 @@ export default function ProjectsPage() {
         <label className="search">
           <Icon name="MagnifyingGlass" size={16} />
           <input
-            placeholder="Search by number or customer"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by number, customer or site"
+            value={filters.query}
+            onChange={(e) => set('query')(e.target.value)}
             aria-label="Search projects"
           />
         </label>
-        <div className="sel">
-          <select value={path} onChange={(e) => setPath(e.target.value)} aria-label="Filter by entry path">
-            <option value="all">All entry paths</option>
-            {Object.entries(ENTRY_PATHS).map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <Icon name="CaretDown" size={14} />
-        </div>
+        {narrow ? (
+          <details className="filters-more">
+            <summary>Filters and sort</summary>
+            <div className="filters">{controls}</div>
+          </details>
+        ) : (
+          controls
+        )}
       </div>
 
       <Card flush title="All projects" hint={<span className="num">{rows.length}</span>}>
-        <DataTable
-          columns={COLUMNS}
-          isEmpty={!rows.length}
-          empty={data.length ? 'No project matches the search.' : 'No projects yet. Create one to start with a customer order.'}
-          className="projects"
-        >
-          {rows.map(({ project, customer, documents, tracker }) => {
-            const stage = currentStage(tracker);
-            return (
-              <tr key={project.id}>
-                <td className="strong">
-                  <Link to={`/projects/${project.id}`}>{project.number}</Link>
-                </td>
-                <td>{customer?.name}</td>
-                <td>{project.entryPath ? entryPathLabel(project.entryPath) : <StatusBadge tone="warning">Needed</StatusBadge>}</td>
-                <td>
-                  {stage.name}
-                  {stage.state === 'blocked' && (
-                    <StatusBadge tone="warning" className="inline">
-                      Blocked
-                    </StatusBadge>
-                  )}
-                  {tracker.every((s) => s.state === 'done') && (
-                    <StatusBadge tone="positive" className="inline">
-                      Done
-                    </StatusBadge>
-                  )}
-                </td>
-                <td className="num">{documents.filter((d) => d.active).length}</td>
-                <td>{formatDate(new Date(project.createdAt).toISOString())}</td>
-              </tr>
-            );
-          })}
-        </DataTable>
+        <ProjectList
+          rows={rows}
+          empty={data.length ? 'No project matches the filters.' : 'No projects yet. Create one to start with a customer order.'}
+        />
       </Card>
 
       <Card title="Development tools" hint="Temporary, for trying the flow" className="dev-tools">

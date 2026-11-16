@@ -10,7 +10,7 @@ export const ROLES = {
 };
 
 const ENGINEER = ['create_project', 'upload', 'edit_lines', 'classify', 'confirm_classification'];
-const ADMIN = [...ENGINEER, 'confirm_intake', 'reopen', 'set_delivery', 'resolve_duplicate', 'reset_data'];
+const ADMIN = [...ENGINEER, 'confirm_intake', 'reopen', 'set_delivery', 'resolve_duplicate', 'reset_data', 'set_project_status'];
 
 export const PERMISSIONS = { admin: ADMIN, engineer: ENGINEER };
 

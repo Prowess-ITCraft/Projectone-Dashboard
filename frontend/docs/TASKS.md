@@ -12,12 +12,16 @@
 - [x] Demo sign-in page: the app sits behind /login, demo account signs in as Admin, animated project steps panel, sign out in the sidebar (ADR 0011)
 - [x] React Router 6 to 7.18.5 (owner approved): clears the router security advisories and the future flag warnings; no code changes were needed (ADR 0012)
 - [x] Bugs fixed after a full browser test: the sign-in error now clears while retyping, primary buttons no longer show a dark left edge, the drawer closes when a window becomes narrow
+- [x] Stage 4: customers list and page, sites (several per project), project status with Admin-only changes and reasons, PrismSuite badge, projects list with new columns, filters, sort and phone cards (ADR 0013)
+- [x] Production readiness pass on Stage 4: project creation saves nothing when any check fails, contact emails are checked, lists read every store once (200 projects: 5.5 s to 0.13 s), long names wrap, pages load as separate files (no 500 kB warning); tested on the dev server and the production build
 
 ## Waiting on the owner
 
 - [ ] Push `feature/stage-1-foundation` (Stages 1 and 2; all stages share this branch) and open the pull request; change the Vercel root directory to `frontend/` when it merges
 - [ ] Review the sign-in page in a browser at desktop and phone width in both themes (not checked by the builder)
-- [ ] Approve the Stage 4 plan in STAGE4_PLAN.md, then build it
+- [ ] Review Stage 4 in the browser and approve it
+- [ ] Send the PrismSuite logo file to replace the text badge
+- [ ] Stage 5 questions (intake for the 13 samples)
 - [ ] Confirm the role matrix in src/domain/permissions.js (see OPEN_QUESTIONS.md)
 - [ ] Stage 4 questions: customer page, sites per customer, list filters and columns, project statuses, PrismSuite logo file
 
@@ -36,7 +40,6 @@
 - [ ] On phones the checklist tables scroll sideways inside their cards; a stacked row layout belongs with the real checklist stage
 - [ ] The overview topology diagram is small at 360 px; revisit with the dashboard work
 - [ ] The spacing scale has a step for nearly every value in use; reducing it would change the look and needs an owner decision
-- [ ] Bundle size: the build warns about a chunk over 500 kB; split the project pages with lazy routes
 - [ ] Support entitlements are stored at module creation but have no screen; they belong with the closure stage
 - [ ] The antivirus conflict list from a PrismSuite report (feeds the EPS and sanitization tasks) is not built; only the coverage check is
 - [ ] Open question for lookup tables: the NAS sheet records a data structure and backup policy, while the restructure prompt lists capacity, RAID, shares, antivirus and snapshot

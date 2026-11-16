@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { Card, FormField, Notice, SegmentedControl } from '@/components';
 import { useActor } from '@/app/actor';
 import { useApi, useApiQuery } from '@/data/api';
-import { ENTRY_PATHS } from '@/domain/projects';
+import { ENTRY_PATHS, lockedByStatus } from '@/domain/projects';
+import { PrismSuiteBadge } from '@/features/customers/PrismSuiteBadge';
 import { actorLabel, can } from '@/domain/permissions';
 import { useAction } from '@/lib/useAction';
+import { ProjectSitesCard } from './ProjectSitesCard';
+import { ProjectStatusCard } from './ProjectStatusCard';
 import { StageActions } from './StageActions';
 import { StageTracker } from './StageTracker';
 import { formatTimestamp } from './labels';
@@ -30,16 +33,17 @@ const ACTIONS = {
   delivery_recorded: 'Delivery recorded',
   service_assigned: 'Service assigned',
   sample_project_created: 'Sample project created',
+  status_changed: 'Status changed',
 };
 
 export default function OverviewTab({ snapshot }) {
   const api = useApi();
   const { actor } = useActor();
   const [run, { error }] = useAction();
-  const { project, customer, tracker } = snapshot;
+  const { project, customer, sites, tracker, audited } = snapshot;
   const [purpose, setPurpose] = useState(null);
   const audit = useApiQuery((a) => a.listAudit(project.id), [project.id]);
-  const editable = can(actor, 'create_project');
+  const editable = can(actor, 'create_project') && !lockedByStatus(project);
 
   const savePurpose = () =>
     purpose !== null && purpose !== project.purpose && run(() => api.updateProject(project.id, { purpose }, { actor }));
@@ -74,10 +78,14 @@ export default function OverviewTab({ snapshot }) {
       </div>
 
       <div className="overview-side">
-        <Card title="Customer">
+        <ProjectStatusCard project={project} tracker={tracker} />
+
+        <Card title="Customer" actions={audited ? <PrismSuiteBadge /> : null}>
           <dl className="facts">
             <dt>Name</dt>
-            <dd>{customer?.name}</dd>
+            <dd>
+              <Link to={`/customers/${project.customerId}`}>{customer?.name}</Link>
+            </dd>
             <dt>Number</dt>
             <dd>{customer?.number}</dd>
             {customer?.gstin && (
@@ -100,6 +108,8 @@ export default function OverviewTab({ snapshot }) {
             )}
           </dl>
         </Card>
+
+        <ProjectSitesCard project={project} sites={sites} />
 
         <Card title="Project">
           {!project.entryPath && <Notice tone="warning">Choose an entry path to unlock the first stage.</Notice>}
