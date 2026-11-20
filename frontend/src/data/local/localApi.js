@@ -1,7 +1,7 @@
 import { applyAddRow, applyDeleteRow, applyPatchRow, applyTask, emptyChecklistState } from '@/domain/checklist';
 import { classifyLines, DEFAULT_RULES } from '@/domain/classification';
 import { DOCUMENT_TYPES, extractionToDocument } from '@/domain/documents';
-import { ACCEPTED_TEXT, FILE_KINDS, fileKind } from '@/domain/files';
+import { ACCEPTED_TEXT, FILE_KINDS, MAX_FILE_BYTES, fileKind } from '@/domain/files';
 import { ENTRY_PATHS, lockedByStatus, siteKey, statusChangeProblem, statusOf } from '@/domain/projects';
 import { financialYear, customerNumber, newId, projectNumber } from '@/domain/ids';
 import { actorLabel, can } from '@/domain/permissions';
@@ -11,8 +11,6 @@ import { isValidGstin, normaliseGstin } from '@/domain/gstin';
 import { isAudited, isValidEmail, matchCustomers } from '@/domain/customers';
 import { sha256Hex } from '@/lib/sha256';
 
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
-
 const fail = (message) => {
   throw new Error(message);
 };
@@ -21,14 +19,16 @@ const fail = (message) => {
   The temporary ProjectOne data layer: every screen reads and writes through this object only. It keeps its data in a
   storage backend (IndexedDB in the browser) and holds the business rules of intake: confirmations, reopening with a
   reason, duplicate documents, module creation. When the backend exists, a second adapter with the same methods replaces it.
-  Writes run one at a time so counters and confirmations cannot interleave.
+  Writes run one at a time so counters and confirmations cannot interleave. On a storage with transactions (the
+  server), each write's changes are saved together or not at all; a storage with its own counters numbers customers
+  and projects, so two people never get the same number.
 */
 export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
   const listeners = new Set();
   let queue = Promise.resolve();
 
   const write = (fn) => {
-    const run = queue.then(fn);
+    const run = queue.then(() => (storage.transaction ? storage.transaction(fn) : fn()));
     queue = run.catch(() => {});
     return run.then((result) => {
       listeners.forEach((l) => l());
@@ -40,6 +40,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
   const byProject = async (store, projectId) => (await all(store)).filter((r) => r.projectId === projectId);
 
   async function counter(key) {
+    if (storage.nextCounter) return storage.nextCounter(key);
     const current = (await storage.get('meta', key)) ?? { value: 0 };
     const next = current.value + 1;
     await storage.put('meta', key, { value: next });
@@ -51,12 +52,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     await storage.put('audit', id, { id, at: now(), actor: actor ?? null, action, projectId, ...details });
   }
 
-  async function getRules() {
-    const stored = await storage.get('rules', 'current');
-    if (stored) return stored;
-    await storage.put('rules', 'current', DEFAULT_RULES);
-    return DEFAULT_RULES;
-  }
+  // The defaults until an Admin stores rules of their own; reading never writes, so anyone may read them
+  const getRules = async () => (await storage.get('rules', 'current')) ?? DEFAULT_RULES;
 
   // Projects stored before sites and status existed read as in progress with no sites
   const normal = (project) => ({ status: 'in_progress', statusReason: '', siteIds: [], ...project });
@@ -287,7 +284,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     await storage.put('meta', 'schema:sites', { at: now() });
   }
 
-  const migrated = write(moveLocationsToSites);
+  // Only browser data from before sites existed needs this; the server never held free-text locations
+  const migrated = storage.remote ? Promise.resolve() : write(moveLocationsToSites);
 
   const api = {
     ready: () => migrated,
@@ -295,6 +293,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    /* Something changed outside this layer (an assignment on the server): every open screen reads again */
+    changed: () => listeners.forEach((l) => l()),
     isPersistent: () => storage.persistent !== false,
     getRules,
 
@@ -516,6 +516,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         const fileId = newId();
         await storage.put('files', fileId, {
           id: fileId,
+          projectId,
           name: file.name,
           type: FILE_KINDS[kind].mime,
           size: file.size,
@@ -820,7 +821,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     assignService: (lineId, moduleId, { actor }) =>
       write(async () => {
-        need(actor, 'classify', 'Your role cannot assign services.');
+        need(actor, 'confirm_classification', 'Only an Admin can assign services to modules.');
         const line = await requireLine(lineId);
         requireOpen(await requireProject(line.projectId));
         const module = (await storage.get('modules', moduleId)) ?? fail('That module no longer exists.');

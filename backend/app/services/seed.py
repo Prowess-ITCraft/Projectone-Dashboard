@@ -5,10 +5,11 @@ from app.domain.role_matrix import ROLE_ACTIONS, ROLES
 from app.models import Counter, Role, RoleAction, Setting, User
 from app.services import audit
 
-# Invented development accounts. They exist only where the development tools are enabled.
+# Invented development accounts with no password: they exist only where the development tools are enabled, and are
+# used through the development header. Real accounts come from scripts/seed_accounts.py.
 DEV_USERS: tuple[tuple[str, str, str], ...] = (
-    ("asha", "Asha", "admin"),
-    ("ravi", "Ravi", "engineer"),
+    ("asha@dev.local", "Asha", "admin"),
+    ("ravi@dev.local", "Ravi", "engineer"),
 )
 
 
@@ -27,10 +28,10 @@ async def seed_roles(session: AsyncSession) -> None:
 
 async def seed_dev_users(session: AsyncSession) -> list[User]:
     users: list[User] = []
-    for username, display_name, role_key in DEV_USERS:
-        found = (await session.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    for email, full_name, role in DEV_USERS:
+        found = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
         if found is None:
-            found = User(username=username, display_name=display_name, role_key=role_key)
+            found = User(email=email, full_name=full_name, role=role)
             session.add(found)
         users.append(found)
     await session.flush()
@@ -38,11 +39,11 @@ async def seed_dev_users(session: AsyncSession) -> list[User]:
 
 
 async def reset_development_data(session: AsyncSession, actor: User) -> None:
-    """Clears counters, settings and users and seeds the development accounts again. The audit log is never
-    cleared, even here: it is append-only, and the reset itself is recorded in it."""
+    """Clears counters and settings and seeds the development accounts again. Other accounts are kept, because they
+    may be referenced by assignments. The audit log is never cleared, even here: it is append-only, and the reset
+    itself is recorded in it."""
     await audit.record(session, actor=actor, action="dev_reset", subject_type="system", reason="Development reset")
     await session.execute(delete(Counter))
     await session.execute(delete(Setting))
-    await session.execute(delete(User))
     await session.flush()
     await seed_dev_users(session)

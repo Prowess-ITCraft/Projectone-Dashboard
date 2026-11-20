@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, DataTable, Dialog, Notice, StatusBadge } from '@/components';
 import { useActor } from '@/app/actor';
 import { useApi } from '@/data/api';
@@ -21,7 +22,8 @@ export default function DocumentsTab({ snapshot }) {
   const api = useApi();
   const { actor } = useActor();
   const [run, { busy, error, clear }] = useAction();
-  const [message, setMessage] = useState('');
+  // a new project hands over what went wrong with a file it could not add
+  const [message, setMessage] = useState(useLocation().state?.notice ?? '');
   const [viewing, setViewing] = useState(null);
   const [editing, setEditing] = useState(null);
   const [comparing, setComparing] = useState(null);

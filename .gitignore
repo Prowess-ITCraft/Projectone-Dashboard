@@ -40,3 +40,6 @@ desktop.ini
 # Private context pack and customer sample documents (kept local; engineering docs live in frontend/docs)
 /docs
 /samples
+
+# Engineer passwords written by backend/scripts/seed_accounts.py, handed out and never committed
+*.local.txt

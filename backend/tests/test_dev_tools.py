@@ -14,10 +14,10 @@ async def test_seed_creates_an_admin_and_an_engineer_and_can_run_twice(
     client = make_client()
     first = await client.post("/dev/seed")
     second = await client.post("/dev/seed")
-    assert first.json() == second.json() == {"users": ["asha", "ravi"]}
+    assert first.json() == second.json() == {"users": ["asha@dev.local", "ravi@dev.local"]}
     async with database.sessions() as session:
-        users = (await session.execute(select(User).order_by(User.username))).scalars().all()
-    assert [(u.username, u.role_key) for u in users] == [("asha", "admin"), ("ravi", "engineer")]
+        users = (await session.execute(select(User).order_by(User.email))).scalars().all()
+    assert [(u.email, u.role) for u in users] == [("asha@dev.local", "admin"), ("ravi@dev.local", "engineer")]
 
 
 async def test_reset_is_for_an_admin_only(seeded: httpx.AsyncClient, make_client: Clients) -> None:
@@ -28,7 +28,7 @@ async def test_reset_is_for_an_admin_only(seeded: httpx.AsyncClient, make_client
     assert engineer.json()["code"] == "forbidden"
 
 
-async def test_reset_clears_counters_and_keeps_the_audit_log_with_its_own_entry(
+async def test_reset_clears_counters_keeps_accounts_and_the_audit_log_with_its_own_entry(
     seeded: httpx.AsyncClient, make_client: Clients, database: Database
 ) -> None:
     async with database.sessions() as session, session.begin():

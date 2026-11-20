@@ -41,7 +41,7 @@ export function UploadCard({ title, hint, types, disabled = false, busy = false,
       >
         <UploadSimpleIcon size={22} aria-hidden="true" />
         <span className="strong">{busy ? 'Adding the file' : 'Choose a file or drop it here'}</span>
-        <small>PDF, Word or Excel, up to 25 MB</small>
+        <small>PDF or Word, up to 25 MB</small>
         <input
           id={`${id}-file`}
           aria-label={`Choose a file or drop it here, ${title}`}

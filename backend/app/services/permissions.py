@@ -12,10 +12,10 @@ async def actions_for(session: AsyncSession, role_key: str) -> list[str]:
 
 async def can(session: AsyncSession, user: User | None, action: str) -> bool:
     """The single permission check. It reads the role_actions rows, so a new role or action is data."""
-    if user is None or not user.active:
+    if user is None or not user.is_active:
         return False
     found = await session.execute(
-        select(RoleAction).where(RoleAction.role_key == user.role_key, RoleAction.action == action)
+        select(RoleAction).where(RoleAction.role_key == user.role, RoleAction.action == action)
     )
     return found.scalar_one_or_none() is not None
 

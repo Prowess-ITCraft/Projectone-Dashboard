@@ -122,7 +122,7 @@ export default function ModulesTab({ snapshot }) {
                   <select
                     aria-label={`Assign line ${l.no} to a module`}
                     value=""
-                    disabled={!can(actor, 'classify')}
+                    disabled={!can(actor, 'confirm_classification')}
                     onChange={(e) => e.target.value && run(() => api.assignService(l.id, e.target.value, { actor }))}
                   >
                     <option value="">Assign to a module</option>

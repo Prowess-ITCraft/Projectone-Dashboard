@@ -201,7 +201,8 @@ describe('roles', () => {
       expect(can(admin, a)).toBe(true);
       expect(can(engineer, a)).toBe(false);
     });
-    expect(can(engineer, 'upload')).toBe(true);
+    expect(can(engineer, 'upload')).toBe(false);
+    expect(['complete_step', 'upload_evidence', 'comment_step'].every((a) => can(engineer, a))).toBe(true);
     expect(can(null, 'upload')).toBe(false);
   });
 

@@ -36,7 +36,7 @@ async function projectWith(api, patch = {}) {
   return api.createProject({
     customer: { name: 'Test Customer', gstin: '27AAAAA0000A1Z5' },
     entryPath: 'post_audit',
-    actor: ENGINEER,
+    actor: ADMIN,
     ...patch,
   });
 }
@@ -55,7 +55,7 @@ describe('projects list', () => {
 
   it('filters by search text and entry path', async () => {
     const api = apiRecognising('pi');
-    await api.loadSampleProjects({ actor: ENGINEER });
+    await api.loadSampleProjects({ actor: ADMIN });
     renderApp(<AppRoutes />, { path: '/projects', api });
     await screen.findByText('PRJ-2627-0001');
     fireEvent.change(screen.getByLabelText('Search projects'), { target: { value: 'engineers' } });
@@ -115,6 +115,63 @@ describe('new project', () => {
     expect(projects).toHaveLength(2);
     expect(projects.every((p) => p.project.customerId === first.customerId)).toBe(true);
   });
+
+  it('no longer asks for a purpose', async () => {
+    renderApp(<AppRoutes />, { path: '/projects/new' });
+    await screen.findByLabelText('Customer name');
+    expect(screen.queryByLabelText('Purpose')).not.toBeInTheDocument();
+  });
+
+  it('says PrismSuite is not integrated, and adds the chosen order document to the project it creates', async () => {
+    const api = apiRecognising(null);
+    renderApp(<AppRoutes />, { path: '/projects/new', api });
+    fireEvent.change(await screen.findByLabelText('Customer name'), { target: { value: 'Test Customer' } });
+    fireEvent.click(screen.getByRole('button', { name: 'New infrastructure' }));
+    expect(screen.queryByText('Start from a document')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload PO/PI' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Import from PrismSuite' }));
+    expect(screen.getByText('PrismSuite is not integrated yet.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('PO or PI file'), { target: { files: [new File(['x'], 'order.png')] } });
+    expect(screen.getByText(/order\.png: Only PDF or Word/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('PO or PI file'), { target: { files: [pdf('order.pdf')] } });
+    expect(screen.getByText('order.pdf')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Purchase order' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toMatch(/^\/projects\/.+\/documents$/));
+    const [{ documents }] = await api.listProjects();
+    expect(documents.map((d) => [d.type, d.fileName])).toEqual([['po', 'order.pdf']]);
+  });
+
+  it('takes an optional PrismSuite report (PDF or Word only), lets it be removed, and adds it to the new project', async () => {
+    const api = apiRecognising(null);
+    renderApp(<AppRoutes />, { path: '/projects/new', api });
+    fireEvent.change(await screen.findByLabelText('Customer name'), { target: { value: 'Test Customer' } });
+    fireEvent.click(screen.getByRole('button', { name: 'New infrastructure' }));
+    expect(screen.getByRole('button', { name: 'Upload PrismSuite report' })).toBeInTheDocument();
+    expect(screen.getByText('Optional, if a report exists')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import from PrismSuite' })).toBeInTheDocument();
+
+    // Excel and pictures are refused for the report and for the order document
+    fireEvent.change(screen.getByLabelText('PrismSuite report file'), { target: { files: [new File(['x'], 'report.xlsx')] } });
+    expect(screen.getByText(/report\.xlsx: Only PDF or Word/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('PO or PI file'), { target: { files: [new File(['x'], 'order.xlsx')] } });
+    expect(screen.getByText(/order\.xlsx: Only PDF or Word/)).toBeInTheDocument();
+    expect(screen.queryByText('PrismSuite report')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('PrismSuite report file'), { target: { files: [pdf('first.pdf')] } });
+    expect(screen.getByText('first.pdf')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove PrismSuite report' }));
+    expect(screen.queryByText('first.pdf')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('PrismSuite report file'), { target: { files: [pdf('report.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toMatch(/^\/projects\/.+\/documents$/));
+    const [{ documents }] = await api.listProjects();
+    expect(documents.map((d) => [d.type, d.fileName])).toEqual([['prismsuite', 'report.pdf']]);
+  });
 });
 
 describe('uploading and reviewing', () => {
@@ -152,17 +209,15 @@ describe('uploading and reviewing', () => {
     expect((await api.getProject(project.id)).modules).toHaveLength(5);
   });
 
-  it('hides money from the intake coordinator and keeps the confirmation for the Admin', async () => {
+  it('shows no money fields on the order lines', async () => {
     const api = apiRecognising('pi');
-    await openDocuments(api, ENGINEER);
+    await openDocuments(api);
     fireEvent.change(orderInput(), { target: { files: [pdf()] } });
     await screen.findByText(/was recognised/);
     fireEvent.click(screen.getByRole('link', { name: /Order lines/ }));
     await screen.findByLabelText('Description of line 1');
     expect(screen.queryByLabelText('Rate of line 1')).not.toBeInTheDocument();
     expect(screen.queryByText(/Grand total/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Confirm intake lines' })).toBeDisabled();
-    expect(screen.getByText('Only an Admin can confirm the lines.')).toBeInTheDocument();
   });
 
   it('asks for a reason before a classification changes and records it', async () => {
@@ -220,7 +275,7 @@ describe('uploading and reviewing', () => {
     fireEvent.change(orderInput(), {
       target: { files: [new File(['x'], 'order.png')] },
     });
-    expect(await screen.findByText('Only PDF, Word (.docx) or Excel (.xlsx) files can be uploaded.')).toBeInTheDocument();
+    expect(await screen.findByText('Only PDF or Word (.docx) files can be uploaded.')).toBeInTheDocument();
   });
 
   it('holds a repeated document for a decision and replaces the earlier one', async () => {

@@ -120,8 +120,15 @@ async def database(admin_url: str, template_url: str) -> AsyncIterator[Database]
             await db.engine.dispose()
 
 
-def settings_for(environment: str = "development") -> Settings:
-    return Settings(environment=environment, database_url="postgresql+asyncpg://unused")  # type: ignore[arg-type]
+DEFAULT_PASSWORD = "starter-pass-1"  # the tests' stand-in for DEFAULT_ENGINEER_PASSWORD
+
+
+def settings_for(environment: str = "development", default_password: str | None = DEFAULT_PASSWORD) -> Settings:
+    return Settings(
+        environment=environment,  # type: ignore[arg-type]
+        database_url="postgresql+asyncpg://unused",
+        default_engineer_password=default_password,
+    )
 
 
 Clients = Callable[..., httpx.AsyncClient]
@@ -137,7 +144,8 @@ async def make_client(database: Database) -> AsyncIterator[Clients]:
         client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app, raise_app_exceptions=False),
             base_url="http://test",
-            headers=headers,
+            # the header the frontend sends with every change; requests that carry the session cookie need it
+            headers={"X-Requested-With": "ProjectOne", **headers},
         )
         opened.append(client)
         return client

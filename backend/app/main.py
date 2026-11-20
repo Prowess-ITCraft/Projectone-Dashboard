@@ -10,18 +10,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import dev, health, identity
+from app.api import auth, checklist, dev, health, identity, notifications, projects, store, users, work
 from app.config import Settings, get_settings
 from app.db import Database, create_database
-from app.errors import AppError, ErrorBody
+from app.errors import AppError, error_response
 from app.request_context import configure_logging, request_id_var
+from app.services.auth import SESSION_COOKIE
 
 log = logging.getLogger("projectone.request")
 
 
-def _error(status: int, code: str, message: str, *, reason: str | None = None) -> JSONResponse:
-    body = ErrorBody(code=code, message=message, reason=reason, request_id=request_id_var.get())
-    return JSONResponse(status_code=status, content=body.model_dump(exclude_none=True))
+_error = error_response
+UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
 def create_app(settings: Settings | None = None, database: Database | None = None) -> FastAPI:
@@ -51,6 +51,7 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         allow_origins=settings.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
+        allow_credentials=True,
         expose_headers=["X-Request-ID"],
     )
 
@@ -63,7 +64,18 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         started = time.perf_counter()
         try:
             try:
-                response = await call_next(request)
+                # A request carrying the session cookie that changes something must also carry this header. A form
+                # or link on another site cannot add it, so a signed-in browser cannot be made to act unknowingly.
+                if (
+                    request.method in UNSAFE_METHODS
+                    and SESSION_COOKIE in request.cookies
+                    and request.headers.get("x-requested-with") != "ProjectOne"
+                ):
+                    response: Response = _error(
+                        403, "missing_request_header", "This request was refused. Reload the page."
+                    )
+                else:
+                    response = await call_next(request)
             except Exception:
                 # Handled here rather than by an exception handler, so the request id is still known for the reply.
                 log.error("unhandled error", exc_info=True)
@@ -99,7 +111,14 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         return _error(exc.status_code, codes.get(exc.status_code, "http_error"), message)
 
     app.include_router(health.router)
+    app.include_router(auth.router)
     app.include_router(identity.router)
+    app.include_router(users.router)
+    app.include_router(projects.router)
+    app.include_router(checklist.router)
+    app.include_router(work.router)
+    app.include_router(notifications.router)
+    app.include_router(store.router)
     if settings.is_development:
         app.include_router(dev.router)
     return app

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import App from './App.jsx';
-import { ENGINEER, makeApi, renderApp } from '@/test/providers.jsx';
+import { ADMIN, ENGINEER, makeApi, renderApp } from '@/test/providers.jsx';
+import { NO_STEPS } from '@/features/projects/ChecklistTab.jsx';
 
 const renderAt = (path) => renderApp(<App />, { path });
 
@@ -70,7 +71,7 @@ describe('App shell on a phone', () => {
 describe('project tabs', () => {
   it('switches between the tabs of a project without losing the page', async () => {
     const api = makeApi();
-    const project = await api.createProject({ customer: { name: 'Tab Customer' }, entryPath: 'post_audit', actor: ENGINEER });
+    const project = await api.createProject({ customer: { name: 'Tab Customer' }, entryPath: 'post_audit', actor: ADMIN });
     renderApp(<App />, { path: `/projects/${project.id}/documents`, api });
     await screen.findByRole('heading', { level: 1, name: 'Tab Customer' });
     for (const [tab, text] of [
@@ -78,6 +79,7 @@ describe('project tabs', () => {
       ['Coverage', /No PrismSuite report is attached/],
       ['Order lines', /There are no order lines yet/],
       ['Overview', /Recent activity/],
+      ['Checklist', new RegExp(NO_STEPS.slice(0, 30))],
     ]) {
       fireEvent.click(screen.getByRole('link', { name: new RegExp(`^${tab}`) }));
       expect(await screen.findByText(text, {}, { timeout: 3000 })).toBeInTheDocument();
@@ -114,5 +116,82 @@ describe('App shell when the window changes width', () => {
     } finally {
       window.matchMedia = original;
     }
+  });
+});
+
+const ENGINEER_SESSION = { id: ENGINEER.id, email: 'eng@test.com', name: ENGINEER.name, role: 'engineer', mustChangePassword: false };
+const asEngineer = (path, api = makeApi()) => renderApp(<App />, { path, api, actor: ENGINEER, session: ENGINEER_SESSION });
+
+describe('an engineer', () => {
+  it('sees only My work in the menu, and is sent there from the Admin pages', async () => {
+    asEngineer('/dashboard');
+    expect(await screen.findByRole('heading', { level: 1, name: 'My work' })).toBeInTheDocument();
+    const menu = screen.getByRole('navigation', { name: 'Main' });
+    expect(within(menu).getByRole('button', { name: 'My work' })).toBeInTheDocument();
+    for (const name of ['Dashboard', 'Projects', 'Customers', 'Users', 'Components']) {
+      expect(within(menu).queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+  });
+
+  it('cannot open the Users page', async () => {
+    asEngineer('/users');
+    expect(await screen.findByRole('heading', { level: 1, name: 'My work' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Users' })).not.toBeInTheDocument();
+  });
+
+  it('sees an empty checklist with its phases, columns and 0 of 0 on an assigned project', async () => {
+    const api = makeApi();
+    const project = await api.createProject({ customer: { name: 'Site Co' }, entryPath: 'new_infra', actor: ADMIN });
+    asEngineer(`/projects/${project.id}/checklist`, api);
+    expect(await screen.findByText(NO_STEPS)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Installation steps' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Configuration steps' })).toBeInTheDocument();
+    expect(screen.getAllByText('0 of 0 completed')).toHaveLength(2);
+    expect(
+      screen
+        .getAllByRole('columnheader')
+        .map((c) => c.textContent)
+        .slice(0, 7),
+    ).toEqual(['SN', 'Done', 'Task', 'Start date', 'End date', 'Progress', 'Comments']);
+    expect(screen.queryByText(/Dell R740/)).not.toBeInTheDocument();
+    expect(document.querySelector('.back')).toHaveAttribute('href', '/my-work');
+  });
+
+  it('is asked for a new password before anything else after a temporary one', async () => {
+    renderApp(<App />, { path: '/my-work', actor: ENGINEER, session: { ...ENGINEER_SESSION, mustChangePassword: true } });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Choose a new password' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
+  });
+});
+
+describe('the alerts bell', () => {
+  it('shows the unread count, lists alerts newest first, and opens the project of one it marks read', async () => {
+    const api = makeApi();
+    const project = await api.createProject({ customer: { name: 'Bell Co' }, entryPath: 'new_infra', actor: ADMIN });
+    api.server.notifications.push(
+      {
+        id: 'n1',
+        type: 'project_assigned',
+        message: 'New project assigned: PRJ-2627-0001, Bell Co',
+        projectId: project.id,
+        read: false,
+        createdAt: 2,
+      },
+      { id: 'n0', type: 'project_assigned', message: 'An older alert', projectId: null, read: true, createdAt: 1 },
+    );
+    asEngineer('/my-work', api);
+    const bell = await screen.findByRole('button', { name: 'Alerts, 1 unread' });
+    fireEvent.click(bell);
+    const panel = screen.getByRole('region', { name: 'Alerts' });
+    expect(
+      within(panel)
+        .getAllByRole('button')
+        .slice(1)
+        .map((b) => b.textContent),
+    ).toEqual([expect.stringContaining('New project assigned: PRJ-2627-0001, Bell Co'), expect.stringContaining('An older alert')]);
+    fireEvent.click(within(panel).getByRole('button', { name: /New project assigned/ }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bell Co' })).toBeInTheDocument();
+    await waitFor(() => expect(api.server.notifications[0].read).toBe(true));
+    expect(await screen.findByRole('button', { name: 'Alerts' })).toBeInTheDocument();
   });
 });

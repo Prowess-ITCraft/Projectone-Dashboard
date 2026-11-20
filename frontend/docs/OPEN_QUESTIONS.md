@@ -4,10 +4,10 @@ Decisions the owner has not made. Each is built as data or behind an interface s
 
 ## Roles and access
 
-- Role matrix: Admin and Engineer permissions in `src/domain/permissions.js` keep the earlier behaviour (Engineer: create projects, upload, edit and classify lines, confirm classification; Admin: also confirm intake, reopen, record delivery, decide duplicates, reset data). Confirm or change.
+- Role matrix: decided 17 Nov 2026 for engineers (assigned projects only; upload, edit and classify lines; no project creation, checklist or stage changes). Whether uploading and editing lines also count as "stages" for engineers is to be confirmed.
 - Who may open the original order files. They contain prices and bank details even though Project One stores none.
 - Additional roles beyond Admin and Engineer, who approves what, and any limits.
-- Sign-in method and two-factor rules. The acting-as picker is development only.
+- Two-factor rules and password policy beyond 10 characters. Sign-in is email and password (ADR 0014).
 
 ## Customers and projects
 

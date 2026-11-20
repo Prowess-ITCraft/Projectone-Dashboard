@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   AddressBookIcon,
   ArrowCounterClockwiseIcon,
-  SignOutIcon,
   DatabaseIcon,
   FolderSimpleIcon,
   GridFourIcon,
@@ -39,12 +38,17 @@ const ProjectPage = lazy(() => import('@/features/projects/ProjectPage.jsx'));
 const LoginPage = lazy(() => import('@/features/auth/LoginPage.jsx'));
 const CustomersPage = lazy(() => import('@/features/customers/CustomersPage.jsx'));
 const CustomerPage = lazy(() => import('@/features/customers/CustomerPage.jsx'));
-import { ActorPicker, useActor } from './actor';
+const ChangePasswordPage = lazy(() => import('@/features/auth/ChangePasswordPage.jsx'));
+const MyWorkPage = lazy(() => import('@/features/work/MyWorkPage.jsx'));
+const UsersPage = lazy(() => import('@/features/users/UsersPage.jsx'));
+import { useActor } from './actor';
+import { NotificationBell } from './NotificationBell';
+import { ProfileMenu } from './ProfileMenu';
 import { useSession } from './session';
 import { SidebarNav } from './Sidebar';
 import { CommandSearch } from './CommandSearch';
 import { BottomBar } from './BottomBar';
-import { NARROW_QUERY, activeFor, bottomBarItems, navGroups } from './navigation';
+import { NARROW_QUERY, AREAS, activeFor, bottomBarItems, homeFor, landingFor, navGroups } from './navigation';
 
 const INFRA_ICONS = {
   firewall: WallIcon,
@@ -67,6 +71,8 @@ const pageKey = (path) => path.replace(/^(\/projects\/[^/]+)\/.*$/, '$1');
 
 function titleFor(path, catalog) {
   if (path === '/dashboard') return 'Overview';
+  if (path === '/my-work') return 'My work';
+  if (path === '/users') return 'Users';
   if (path === '/components') return 'Components';
   if (path === '/projects') return 'Projects';
   if (path === '/projects/new') return 'New project';
@@ -78,16 +84,23 @@ function titleFor(path, catalog) {
   return '';
 }
 
-const groups = navGroups();
-const barItems = bottomBarItems();
+/* A page only some roles may open; anyone else is sent to their own start page */
+function Allowed({ need, children }) {
+  const { actor } = useActor();
+  return can(actor, need) ? children : <Navigate to={homeFor(actor)} replace />;
+}
 
-/* Everything except the sign-in page sits behind the demo sign-in; a signed-out visit returns to where it was headed */
+/*
+  Everything except the sign-in page needs a signed-in account; a signed-out visit returns to where it was headed
+  after signing in. An account with a temporary password chooses its own before anything else opens.
+*/
 export default function App() {
   const loc = useLocation();
-  const { session } = useSession();
+  const { session, loading } = useSession();
+  if (loading) return <LoadingState label="Opening" />;
   if (loc.pathname === '/login') {
     return session ? (
-      <Navigate to={loc.state?.from ?? '/dashboard'} replace />
+      <Navigate to={landingFor(session, loc.state?.from)} replace />
     ) : (
       <Suspense fallback={<LoadingState label="Opening" />}>
         <LoginPage />
@@ -95,6 +108,13 @@ export default function App() {
     );
   }
   if (!session) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  if (session.mustChangePassword) {
+    return (
+      <Suspense fallback={<LoadingState label="Opening" />}>
+        <ChangePasswordPage />
+      </Suspense>
+    );
+  }
   return <Shell />;
 }
 
@@ -103,9 +123,12 @@ function Shell() {
   const nav = useNavigate();
   const api = useApi();
   const { actor } = useActor();
-  const { session, signOut } = useSession();
   const catalog = useCatalog();
   const narrow = useMediaQuery(NARROW_QUERY);
+  const groups = useMemo(() => navGroups(AREAS, actor), [actor]);
+  const barItems = useMemo(() => bottomBarItems(AREAS, actor), [actor]);
+  const home = homeFor(actor);
+  const allProjects = can(actor, 'view_all_projects');
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
   const [sideOpen, setSideOpen] = useState(() => !window.matchMedia(NARROW_QUERY).matches);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -160,36 +183,34 @@ function Shell() {
       ),
     },
     ...(can(actor, 'reset_data') ? [{ id: 'reset', title: 'Reset all data', icon: ArrowCounterClockwiseIcon }] : []),
-    { id: 'signout', title: `Sign out ${session.name}`, icon: SignOutIcon },
   ];
 
   const entries = useMemo(
-    () => [
-      { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFourIcon },
-      { id: '/projects', title: 'Projects', hint: 'List', icon: FolderSimpleIcon },
-      { id: '/customers', title: 'Customers', hint: 'List', icon: AddressBookIcon },
-      { id: '/components', title: 'All components', hint: 'List', icon: GridFourIcon },
-      { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrivesIcon },
-      { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: WallIcon },
-      ...(catalog?.items ?? []).map((i) => ({
-        id: `/c/${i.id}`,
-        title: i.name,
-        hint: i.grp === 'infra' ? 'Network component' : 'Product',
-        icon: INFRA_ICONS[i.id] || PackageIcon,
-      })),
-    ],
-    [catalog],
+    () =>
+      !allProjects
+        ? [{ id: '/my-work', title: 'My work', hint: 'Your projects', icon: FolderSimpleIcon }]
+        : [
+            { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFourIcon },
+            { id: '/projects', title: 'Projects', hint: 'List', icon: FolderSimpleIcon },
+            { id: '/customers', title: 'Customers', hint: 'List', icon: AddressBookIcon },
+            { id: '/components', title: 'All components', hint: 'List', icon: GridFourIcon },
+            { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrivesIcon },
+            { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: WallIcon },
+            ...(catalog?.items ?? []).map((i) => ({
+              id: `/c/${i.id}`,
+              title: i.name,
+              hint: i.grp === 'infra' ? 'Network component' : 'Product',
+              icon: INFRA_ICONS[i.id] || PackageIcon,
+            })),
+          ],
+    [catalog, allProjects],
   );
 
   const onSelect = (id) => {
     if (id === 'theme') return setTheme(dark ? 'light' : 'dark');
-    if (id === 'signout') {
-      signOut();
-      return nav('/login', { replace: true });
-    }
     if (id === 'reset')
       return (
-        window.confirm('Clear all projects, checklist progress and questionnaire responses stored in this browser?') &&
+        window.confirm('Delete every customer, project, document, checklist record and questionnaire response for everyone?') &&
         api.resetAll({ actor })
       );
     nav(id);
@@ -207,7 +228,7 @@ function Shell() {
           onSelect={onSelect}
           logo={logo}
           product="ProjectOne"
-          onHome={() => onSelect('/dashboard')}
+          onHome={() => onSelect(home)}
         />
       </aside>
       {drawerOpen && <button type="button" className="scrim" aria-label="Close navigation" onClick={() => setSideOpen(false)} />}
@@ -227,7 +248,8 @@ function Shell() {
             <span>Search</span>
             <kbd>Ctrl K</kbd>
           </button>
-          <ActorPicker />
+          <NotificationBell />
+          <ProfileMenu />
         </header>
 
         <div className="canvas">
@@ -240,16 +262,81 @@ function Shell() {
           >
             <Suspense fallback={<LoadingState label="Opening the page" />}>
               <Routes location={loc}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/new" element={<NewProjectPage />} />
+                <Route path="/my-work" element={<MyWorkPage />} />
                 <Route path="/projects/:id/*" element={<ProjectPage />} />
-                <Route path="/customers" element={<CustomersPage />} />
-                <Route path="/customers/:id" element={<CustomerPage />} />
-                <Route path="/components" element={<Components />} />
-                <Route path="/c/:id/:mode?" element={<Detail />} />
-                <Route path="/q/:kind" element={<QRoute catalog={catalog} />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <Dashboard />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/projects"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <ProjectsPage />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/projects/new"
+                  element={
+                    <Allowed need="create_project">
+                      <NewProjectPage />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/customers"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <CustomersPage />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/customers/:id"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <CustomerPage />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/components"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <Components />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/c/:id/:mode?"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <Detail />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/q/:kind"
+                  element={
+                    <Allowed need="view_all_projects">
+                      <QRoute catalog={catalog} />
+                    </Allowed>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <Allowed need="manage_users">
+                      <UsersPage />
+                    </Allowed>
+                  }
+                />
+                <Route path="*" element={<Navigate to={home} replace />} />
               </Routes>
             </Suspense>
           </motion.div>

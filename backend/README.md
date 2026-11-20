@@ -30,7 +30,17 @@ python -m venv .venv
 
 `--no-access-log` matters: the server's own access log prints full URLs, and query strings can hold customer data. The application writes its own request line (method, path, status, time, request id) without them.
 
-In development, create the invented accounts with `POST /dev/seed`, then act as one by sending the header `X-Dev-User: asha` (Admin) or `X-Dev-User: ravi` (Engineer). Interactive docs are at `/docs` in development only.
+Create the first accounts once the migrations have run (ADMIN_PASSWORD at least 10 characters; set both in the environment or a local `.env`, never in the repository):
+
+```sh
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... DEFAULT_ENGINEER_PASSWORD=... .venv/Scripts/python scripts/seed_accounts.py
+```
+
+It creates the Admin and Engineer 01 to 10 (engineer01@ and so on, at the Admin's domain unless `ENGINEER_EMAIL_DOMAIN` is set), gives every engineer the same starting password from `DEFAULT_ENGINEER_PASSWORD` (at least 10 characters; environment or local `.env` only, never committed, and only its hash is stored) and prints nothing secret. Running it again creates only what is missing and never changes an existing password, so a password an engineer has chosen is safe. Every account chooses a new password at first sign-in.
+
+The API reads `DEFAULT_ENGINEER_PASSWORD` too (Docker Compose passes it through from your shell or an untracked `.env`). Without it, adding an engineer or resetting one to the default fails with `default_password_not_set`. On the Users page an Admin can copy an engineer's email and the default password (`GET /users/{id}/login-details`, only while they have not changed it) and reset an engineer to the default (`POST /users/{id}/reset-password`). A password an engineer chose is never readable.
+
+In development you can also create two invented accounts without passwords with `POST /dev/seed` and act as one with the header `X-Dev-User: asha` (Admin) or `X-Dev-User: ravi` (Engineer). Interactive docs are at `/docs` in development only.
 
 ## Check it
 
@@ -50,7 +60,15 @@ Tests need no Docker: without `TEST_DATABASE_URL` they start an embedded Postgre
 | `GET /health`         | anyone                 | Process is up                                                           |
 | `GET /health/ready`   | anyone                 | Database answers                                                        |
 | `GET /version`        | anyone                 | Version and environment                                                 |
-| `GET /me`             | signed in              | The user, role and permitted actions                                    |
+| `POST /auth/login`    | anyone                 | Sign in; sets the session cookie                                        |
+| `POST /auth/logout`   | anyone                 | Ends the session                                                        |
+| `POST /auth/change-password` | signed in       | Replaces a temporary or default password; the default is refused as the new one |
+| `GET /me`             | signed in              | The user, role, permitted actions and whether a new password is due     |
+| `GET, POST /users`, `POST /users/{id}/reset-password`, `/deactivate`, `/activate` | Admin | Accounts |
+| `GET /assignments`, `GET, PUT /projects/{id}/assignments`, `DELETE /projects/{id}/assignments/{engineer}` | Admin; engineers read their own | Engineers on projects |
+| `GET /notifications`, `POST /notifications/{id}/read`, `/read-all` | signed in | The user's alerts |
+| `GET /projects/{id}/checklist-steps` | Admin or assigned engineer | Checklist steps (none yet) |
+| `/store/...`          | signed in, by permission and assignment | The record store the frontend data layer saves through |
 | `GET /roles`          | signed in              | Roles and their actions (permissions are data)                          |
 | `POST /dev/seed`      | development only       | Creates the Admin and Engineer development accounts                     |
 | `POST /dev/reset`     | development only, Admin | Clears counters, settings and users, reseeds; the audit log is kept    |
@@ -70,8 +88,8 @@ app/
   domain/        pure rules: role matrix, financial year and readable numbers
   models/        SQLAlchemy models
   schemas/       response models
-migrations/      Alembic (0001 baseline, 0002 identity, audit and counters)
-scripts/         local PostgreSQL without Docker
+migrations/      Alembic (0001 baseline, 0002 identity, audit and counters, 0003 accounts, projects and assignments)
+scripts/         local PostgreSQL without Docker, and the account seed
 tests/           pytest, one database copy per test
 ```
 

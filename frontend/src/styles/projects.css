@@ -336,6 +336,36 @@
     grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
     gap: var(--gutter);
   }
+  .start-docs {
+    display: grid;
+    gap: var(--space-12);
+    margin-bottom: var(--space-24);
+  }
+  .upload-option {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  /* New project, "Project" card: room between the heading, the entry path, its helper sentence, the upload buttons and the sites */
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+  }
+  .project-card .field-label {
+    margin-bottom: var(--space-12);
+  }
+  .project-card .field-hint {
+    margin-top: var(--space-12);
+  }
+  .project-card .start-docs {
+    margin-bottom: 0;
+    gap: var(--space-16);
+  }
+  .start-docs .site-list {
+    margin: 0;
+  }
   .upload-card .field {
     margin-bottom: var(--space-16);
   }
@@ -605,26 +635,6 @@
     margin-top: var(--gutter);
   }
 
-  /* acting as */
-  .actor-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-6);
-    height: 34px;
-    padding: 0 var(--space-12);
-    border: 1px solid var(--glass-bd);
-    border-radius: var(--rad-full);
-    background: var(--card);
-    color: var(--mut);
-    font-size: var(--fs-label);
-    box-shadow: var(--rim), var(--shadow);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    white-space: nowrap;
-  }
-  .actor-trigger:hover {
-    color: var(--ink);
-  }
   .search-trigger {
     margin-left: auto;
   }
@@ -638,14 +648,6 @@
     }
   }
   @media (max-width: 860px) {
-    .actor-trigger span {
-      display: none;
-    }
-    .actor-trigger {
-      width: 34px;
-      padding: 0;
-      justify-content: center;
-    }
     .tabs {
       width: 100%;
     }

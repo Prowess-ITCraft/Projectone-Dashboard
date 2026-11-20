@@ -1,18 +1,34 @@
 import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { useActor } from '@/app/actor';
+import { homeFor } from '@/app/navigation';
 import { ErrorState, Icon, LoadingState, PageHead, StatusBadge, TabNav } from '@/components';
 import { useApiQuery } from '@/data/api';
 import { entryPathLabel, PROJECT_STATUS, statusOf } from '@/domain/projects';
+import { can } from '@/domain/permissions';
 import { PrismSuiteBadge } from '@/features/customers/PrismSuiteBadge';
+import { ProjectEngineers } from './AssignEngineers';
+import ChecklistTab from './ChecklistTab';
+import { useEngineers } from './useEngineers';
 import { formatDate } from './labels';
 import OverviewTab from './OverviewTab';
 import DocumentsTab from './DocumentsTab';
 import LinesTab from './LinesTab';
 import CoverageTab from './CoverageTab';
 import ModulesTab from './ModulesTab';
+import EngineerProjectPage from './EngineerProjectPage';
 
+/* An engineer gets their own, much smaller page, and never loads the Admin project data */
 export default function ProjectPage() {
+  const { actor } = useActor();
+  return can(actor, 'view_all_projects') ? <AdminProjectPage /> : <EngineerProjectPage />;
+}
+
+function AdminProjectPage() {
   const { id } = useParams();
+  const { actor } = useActor();
   const { data, error, loading, reload } = useApiQuery((api) => api.getProject(id), [id]);
+  const team = useEngineers();
+  const allProjects = can(actor, 'view_all_projects');
 
   if (loading) return <LoadingState label="Opening the project" />;
   if (error) {
@@ -28,13 +44,14 @@ export default function ProjectPage() {
     { to: `${base}/lines`, label: 'Order lines', count: lines.length },
     { to: `${base}/coverage`, label: 'Coverage' },
     { to: `${base}/modules`, label: 'Modules', count: modules.length },
+    { to: `${base}/checklist`, label: 'Checklist' },
   ];
 
   return (
     <>
-      <Link to="/projects" className="back">
+      <Link to={allProjects ? '/projects' : homeFor(actor)} className="back">
         <Icon name="ArrowLeft" size={14} />
-        All projects
+        {allProjects ? 'All projects' : 'My work'}
       </Link>
       <PageHead
         title={customer?.name ?? 'Project'}
@@ -45,6 +62,15 @@ export default function ProjectPage() {
           {audited && <PrismSuiteBadge />}
         </div>
       </PageHead>
+      <div className="project-team">
+        <span className="project-team-label">Engineers</span>
+        <ProjectEngineers
+          project={project}
+          customerName={customer?.name}
+          assigned={team.byProject.get(project.id) ?? []}
+          engineers={team.engineers}
+        />
+      </div>
       <TabNav items={tabs} label="Project sections" />
 
       <Routes>
@@ -53,6 +79,7 @@ export default function ProjectPage() {
         <Route path="lines" element={<LinesTab snapshot={data} />} />
         <Route path="coverage" element={<CoverageTab snapshot={data} />} />
         <Route path="modules" element={<ModulesTab snapshot={data} />} />
+        <Route path="checklist" element={<ChecklistTab snapshot={data} />} />
         <Route path="*" element={<Navigate to={base} replace />} />
       </Routes>
     </>

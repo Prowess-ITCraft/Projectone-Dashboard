@@ -40,7 +40,7 @@ With Docker:
 docker compose up
 ```
 
-The app is served on http://localhost:9555. The API address is read from `VITE_API_URL` (default `http://localhost:9666`); copy `frontend/.env.example` to `frontend/.env` to change it.
+The app is served on http://localhost:9555 and needs the API (see `backend/README.md`, including the account seed script). The dev server forwards `/api` to `API_PROXY_TARGET` (default `http://localhost:9666`), so the session cookie stays on the app's address.
 
 ## Scripts (in `frontend/`)
 
