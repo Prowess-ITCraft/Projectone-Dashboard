@@ -96,7 +96,7 @@ export default function NewProjectPage() {
         <Icon name="ArrowLeft" size={14} />
         All projects
       </Link>
-      <PageHead title="New project" sub="Name the customer and how the work came about. You add the order documents next." />
+      <PageHead title="New project" sub="Name the customer and how the work came about. You add the documents here too." />
 
       <form onSubmit={submit} noValidate className="stack">
         <Card title="Customer">
@@ -170,7 +170,7 @@ export default function NewProjectPage() {
               />
             )}
           </FormField>
-          <StartingDocuments value={docs} onChange={setDocs} disabled={busy || !can(actor, 'upload')} />
+          <StartingDocuments entryPath={entryPath} value={docs} onChange={setDocs} disabled={busy || !can(actor, 'upload')} />
           <SitePicker
             legend="Sites this project covers"
             sites={customerSites}

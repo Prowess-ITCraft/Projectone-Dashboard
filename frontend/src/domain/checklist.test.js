@@ -13,7 +13,21 @@ import {
 } from './checklist';
 
 const items = catalog.items;
-const firewall = items.find((i) => i.id === 'firewall');
+/* The shipped services have no steps yet, so these rules are tested on a sample item */
+const firewall = {
+  id: 'sample',
+  name: 'Sample',
+  cat: 'Network',
+  tasks: {
+    new: [
+      ['Installation', 'Install'],
+      ['Configuration', 'Configure'],
+      ['Configuration', 'Hand over'],
+    ],
+    existing: [['Configuration', 'Review']],
+  },
+};
+const withSample = [...items, firewall];
 const at = Date.UTC(2026, 10, 16, 12);
 
 describe('itemStats', () => {
@@ -34,12 +48,12 @@ describe('itemStats', () => {
 
 describe('totals and pillars', () => {
   it('sums every task of every component across both work types', () => {
-    const expected = items.reduce((n, it) => n + tasksFor(it, 'new').length + tasksFor(it, 'existing').length, 0);
-    expect(totals(emptyChecklistState(), items)).toMatchObject({ total: expected, pct: 0 });
+    const expected = withSample.reduce((n, it) => n + tasksFor(it, 'new').length + tasksFor(it, 'existing').length, 0);
+    expect(totals(emptyChecklistState(), withSample)).toMatchObject({ total: expected, pct: 0 });
   });
 
   it('gives each pillar a percentage', () => {
-    expect(catStats(emptyChecklistState(), items).every((c) => c.pct === 0)).toBe(true);
+    expect(catStats(emptyChecklistState(), withSample).every((c) => c.pct === 0)).toBe(true);
   });
 });
 

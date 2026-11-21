@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { CheckCircleIcon, LockIcon } from '@phosphor-icons/react';
 import { Card, CountUp, DataTable, ErrorState, LoadingState, Notice, Ring, StatusBadge } from '@/components';
 import { useActor } from '@/app/actor';
@@ -14,6 +14,8 @@ export const CHECKLIST_PHASES = [
   ['installation', 'Installation'],
   ['configuration', 'Configuration'],
 ];
+/* How often an open checklist asks the server for changes made by the engineer */
+export const CHECKLIST_REFRESH_MS = 10_000;
 export const NO_STEPS = 'No checklist steps yet. Steps will appear here once they are defined for this project.';
 
 /* How each state looks: Complete is green (the app's success colour), Awaiting evidence is amber, Pending is neutral */
@@ -114,6 +116,18 @@ export default function ChecklistTab({ snapshot, projectId = snapshot?.project.i
   const { actor } = useActor();
   const { data, error, loading, reload } = useApiQuery((a) => a.getChecklist(projectId), [projectId]);
   const [opened, setOpened] = useState({});
+
+  /* The engineer works in their own session, so an Admin looking at the same project picks up ticks, evidence and comments
+     by asking the server again every few seconds and whenever the tab is brought back to the front */
+  useEffect(() => {
+    const again = () => document.visibilityState === 'visible' && reload();
+    const timer = setInterval(again, CHECKLIST_REFRESH_MS);
+    document.addEventListener('visibilitychange', again);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', again);
+    };
+  }, [reload]);
 
   if (loading) return <LoadingState label="Loading the checklist" />;
   if (error) return <ErrorState title="The checklist could not be loaded" message={error.message} onRetry={reload} />;

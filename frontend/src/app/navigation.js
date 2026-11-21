@@ -25,7 +25,7 @@ export const NARROW_QUERY = `(max-width: ${NAV_BREAKPOINT}px)`;
   may lead to an empty page, so an area appears only once its screens exist. `bottomBar` marks the areas that get a
   tab on phones (Dashboard, Projects, My tasks; the fourth tab, More, opens the drawer).
 
-  Questionnaire and Components are the current screens. They stay in the menu until Stage 4 moves them inside a project.
+  Questionnaire and Implementation services are the current screens. They stay in the menu until Stage 4 moves them inside a project.
 
   `need` names the permission an area requires; `hideWith` hides it from anyone holding that permission. An engineer
   (no `view_all_projects`) sees My work and the projects assigned to them, and none of the Admin areas.
@@ -56,7 +56,7 @@ export const CURRENT_SCREENS = [
       { id: '/q/firewall', title: 'Firewall', icon: WallIcon },
     ],
   },
-  { id: '/components', title: 'Components', icon: GridFourIcon },
+  { id: '/services', title: 'Implementation services', icon: GridFourIcon },
 ];
 
 const strip = ({ id, title, icon }) => ({ id, title, icon });
@@ -86,9 +86,9 @@ const PROJECT_LINK = /^\/projects\/(?!new$)[^/]+/;
 export const landingFor = (actor, from) =>
   !can(actor, 'view_all_projects') && typeof from === 'string' && PROJECT_LINK.test(from) ? from : homeFor(actor);
 
-/* The nav item that should look selected for a route: checklist pages belong to Components */
+/* The nav item that should look selected for a route: service checklist pages belong to Implementation services */
 export function activeFor(path) {
-  if (path.startsWith('/c/')) return '/components';
+  if (path.startsWith('/services')) return '/services';
   if (path.startsWith('/projects')) return '/projects';
   if (path.startsWith('/customers')) return '/customers';
   if (path.startsWith('/users')) return '/users';

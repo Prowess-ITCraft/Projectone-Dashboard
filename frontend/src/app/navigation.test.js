@@ -20,7 +20,7 @@ describe('navigation config', () => {
   it('shows only built areas, then the current screens', () => {
     const [areas, screens] = navGroups();
     expect(areas.items.map((i) => i.title)).toEqual(['Dashboard', 'My work', 'Projects', 'Customers', 'Users']);
-    expect(screens.items.map((i) => i.title)).toEqual(['Questionnaire', 'Components']);
+    expect(screens.items.map((i) => i.title)).toEqual(['Questionnaire', 'Implementation services']);
   });
 
   it('adds an area to the menu and the bottom bar once it is built', () => {
@@ -40,7 +40,7 @@ describe('navigation config', () => {
     const engineer = { role: 'engineer' };
     expect(navGroups(AREAS, admin).map((g) => g.items.map((i) => i.title))).toEqual([
       ['Dashboard', 'Projects', 'Customers', 'Users'],
-      ['Questionnaire', 'Components'],
+      ['Questionnaire', 'Implementation services'],
     ]);
     expect(navGroups(AREAS, engineer).map((g) => g.items.map((i) => i.title))).toEqual([['My work']]);
     expect(bottomBarItems(AREAS, engineer).map((i) => i.title)).toEqual(['My work']);
@@ -55,8 +55,8 @@ describe('navigation config', () => {
     expect(landingFor({ role: 'admin' }, '/projects/abc/checklist')).toBe('/dashboard');
   });
 
-  it('highlights Components for checklist pages', () => {
-    expect(activeFor('/c/firewall/existing')).toBe('/components');
+  it('highlights Implementation services for checklist pages', () => {
+    expect(activeFor('/services/ad-dc/existing')).toBe('/services');
     expect(activeFor('/dashboard')).toBe('/dashboard');
     expect(activeFor('/projects/abc/lines')).toBe('/projects');
     expect(activeFor('/customers/abc')).toBe('/customers');

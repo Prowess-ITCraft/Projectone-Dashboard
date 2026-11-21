@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { makeApi, renderApp } from '@/test/providers.jsx';
-import Components from './Components.jsx';
+import ImplementationServices from './ImplementationServices.jsx';
 import Dashboard from './Dashboard.jsx';
 import Detail from './Detail.jsx';
 import Questionnaire from './Questionnaire.jsx';
@@ -10,8 +10,8 @@ import Questionnaire from './Questionnaire.jsx';
 const Routing = () => (
   <Routes>
     <Route path="/dashboard" element={<Dashboard />} />
-    <Route path="/components" element={<Components />} />
-    <Route path="/c/:id/:mode?" element={<Detail />} />
+    <Route path="/services" element={<ImplementationServices />} />
+    <Route path="/services/:id/:mode?" element={<Detail />} />
     <Route path="/q/:kind" element={<Questionnaire kind="firewall" />} />
   </Routes>
 );
@@ -22,26 +22,20 @@ describe('component pages on the data layer', () => {
     renderApp(<Routing />, { path: '/dashboard', api });
     expect(await screen.findByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument();
     expect(screen.getByText(/No task has been ticked yet/)).toBeInTheDocument();
-    await api.setTaskProgress('firewall|new|0', { s: 2 }, 'Firewall: step');
-    expect(await screen.findByText(/1 of \d+ tasks completed/)).toBeInTheDocument();
   });
 
-  it('lists the components and filters them', async () => {
-    renderApp(<Routing />, { path: '/components' });
-    expect(await screen.findByRole('heading', { level: 1, name: 'Components' })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'zzzz' } });
-    expect(await screen.findByText(/No components match/)).toBeInTheDocument();
+  it('lists the implementation services and filters them', async () => {
+    renderApp(<Routing />, { path: '/services' });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Implementation services' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Search implementation services'), { target: { value: 'zzzz' } });
+    expect(await screen.findByText(/No services match/)).toBeInTheDocument();
   });
 
-  it('ticks a task, stores it, and keeps it after the page is drawn again', async () => {
-    const api = makeApi();
-    const view = renderApp(<Routing />, { path: '/c/nas/new', api });
-    const first = await screen.findByRole('checkbox', { name: /Completed: QNAP Setup Installation/ });
-    fireEvent.click(first);
-    expect(first).toBeChecked();
-    await waitFor(async () => expect((await api.getChecklistState()).tasks['nas|new|0']?.s).toBe(2));
-    view.unmount();
-    renderApp(<Routing />, { path: '/c/nas/new', api });
-    expect(await screen.findByRole('checkbox', { name: /Completed: QNAP Setup Installation/ })).toBeChecked();
+  it('opens AD/DC with its name and description and nothing else yet', async () => {
+    renderApp(<Routing />, { path: '/services/ad-dc' });
+    expect(await screen.findByRole('heading', { level: 1, name: 'AD/DC' })).toBeInTheDocument();
+    expect(screen.queryByText('Work type')).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Export CSV/ })).not.toBeInTheDocument();
   });
 });

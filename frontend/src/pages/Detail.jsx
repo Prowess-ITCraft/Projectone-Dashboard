@@ -116,7 +116,7 @@ function Checklist({ data }) {
   const nav = useNavigate();
   const { state, items: ITEMS, setTask } = data;
   const item = ITEMS.find((i) => i.id === id);
-  if (!item) return <Navigate to="/components" replace />;
+  if (!item) return <Navigate to="/services" replace />;
 
   const mode = modeParam === 'existing' ? 'existing' : 'new';
   const s = itemStats(state, item, mode);
@@ -137,11 +137,24 @@ function Checklist({ data }) {
     demo: 'No installation file was supplied for this component. These stages are demo placeholders.',
   }[item.src];
 
+  // a service whose steps are not defined yet shows its name and description only
+  if (!tasksFor(item, 'new').length && !tasksFor(item, 'existing').length) {
+    return (
+      <>
+        <Link to="/services" className="back">
+          <Icon name="ArrowLeft" size={14} />
+          All implementation services
+        </Link>
+        <PageHead title={item.name} sub={item.desc} />
+      </>
+    );
+  }
+
   return (
     <>
-      <Link to="/components" className="back">
+      <Link to="/services" className="back">
         <Icon name="ArrowLeft" size={14} />
-        All components
+        All implementation services
       </Link>
       <PageHead title={item.name} sub={item.desc}>
         <button className="btn ghost" onClick={exportCsv}>
@@ -155,7 +168,7 @@ function Checklist({ data }) {
           <FormField label="Work type">
             {(f) => (
               <div className="sel">
-                <select {...f.control} value={mode} onChange={(e) => nav(`/c/${item.id}/${e.target.value}`)}>
+                <select {...f.control} value={mode} onChange={(e) => nav(`/services/${item.id}/${e.target.value}`)}>
                   {Object.entries(MODES).map(([k, l]) => (
                     <option key={k} value={k}>
                       {l}

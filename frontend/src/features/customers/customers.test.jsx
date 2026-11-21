@@ -153,7 +153,7 @@ describe('project status on the overview', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Put on hold' }));
     expect(await screen.findAllByText(/This project is on hold/)).not.toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Change sites' })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Change site' })).toBeDisabled();
   });
 
   it('gives an Engineer none of the Admin project controls, only the order lines and the checklist', async () => {
@@ -163,16 +163,16 @@ describe('project status on the overview', () => {
     renderApp(<Pages />, { path: `/projects/${a.id}`, api, actor: ENGINEER });
     expect(await screen.findByRole('link', { name: 'Checklist' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Put on hold' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Change sites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Change site' })).not.toBeInTheDocument();
     expect(screen.queryByText('Only an Admin can change the status.')).not.toBeInTheDocument();
   });
 
-  it('changes the sites a project covers', async () => {
+  it('switches the site the project works on', async () => {
     const { api, a } = await seed();
     renderApp(<Pages />, { path: `/projects/${a.id}`, api });
-    fireEvent.click(await screen.findByRole('button', { name: 'Change sites' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: /Mumbai office/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save sites' }));
+    const select = await screen.findByRole('combobox', { name: 'Change site' });
+    await waitFor(() => expect(within(select).getByRole('option', { name: 'Tarapur plant' })).toBeInTheDocument());
+    fireEvent.change(select, { target: { value: within(select).getByRole('option', { name: 'Tarapur plant' }).value } });
     await waitFor(async () => expect((await api.getProject(a.id)).sites.map((s) => s.name)).toEqual(['Tarapur plant']));
   });
 });

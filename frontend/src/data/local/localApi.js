@@ -1,7 +1,7 @@
 import { applyAddRow, applyDeleteRow, applyPatchRow, applyTask, emptyChecklistState } from '@/domain/checklist';
 import { classifyLines, DEFAULT_RULES } from '@/domain/classification';
 import { DOCUMENT_TYPES, extractionToDocument } from '@/domain/documents';
-import { ACCEPTED_TEXT, FILE_KINDS, MAX_FILE_BYTES, fileKind } from '@/domain/files';
+import { ACCEPTED_TEXT, FILE_KINDS, LOOKUP_ACCEPTED_TEXT, LOOKUP_KINDS, MAX_FILE_BYTES, fileKind, lookupKind } from '@/domain/files';
 import { ENTRY_PATHS, lockedByStatus, siteKey, statusChangeProblem, statusOf } from '@/domain/projects';
 import { financialYear, customerNumber, newId, projectNumber } from '@/domain/ids';
 import { actorLabel, can } from '@/domain/permissions';
@@ -638,6 +638,47 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           subject: `${DOCUMENT_TYPES[doc.type]} ${doc.number || doc.fileName}`,
           reason: null,
         });
+      }),
+
+    /* The project's lookup table: one file, kept as supplied. A new upload replaces the earlier one. */
+    setLookupTable: ({ projectId, file, actor }) =>
+      write(async () => {
+        need(actor, 'upload', 'Your role cannot upload the lookup table.');
+        const kind = lookupKind(file);
+        if (!kind) fail(`Only ${LOOKUP_ACCEPTED_TEXT} files can be uploaded.`);
+        if (file.size > MAX_FILE_BYTES) fail('This file is larger than 25 MB.');
+        const project = await requireProject(projectId);
+        requireOpen(project);
+        const bytes = await file.arrayBuffer();
+        const fileId = newId();
+        await storage.put('files', fileId, {
+          id: fileId,
+          projectId,
+          name: file.name,
+          type: LOOKUP_KINDS[kind].mime,
+          size: file.size,
+          hash: await sha256Hex(bytes),
+          blob: new Blob([bytes], { type: LOOKUP_KINDS[kind].mime }),
+        });
+        if (project.lookupTable?.fileId) await storage.delete('files', project.lookupTable.fileId);
+        const lookupTable = { fileId, name: file.name, kind, size: file.size, uploadedAt: now(), uploadedBy: actorLabel(actor) };
+        const next = { ...project, lookupTable };
+        await storage.put('projects', projectId, next);
+        await record(actor, 'lookup_table_added', projectId, { subject: file.name, reason: null });
+        return next;
+      }),
+
+    removeLookupTable: (projectId, { actor }) =>
+      write(async () => {
+        need(actor, 'upload', 'Your role cannot remove the lookup table.');
+        const project = await requireProject(projectId);
+        requireOpen(project);
+        if (!project.lookupTable) return project;
+        if (project.lookupTable.fileId) await storage.delete('files', project.lookupTable.fileId);
+        const { lookupTable, ...rest } = project;
+        await storage.put('projects', projectId, rest);
+        await record(actor, 'lookup_table_removed', projectId, { subject: lookupTable.name, reason: null });
+        return rest;
       }),
 
     getDocumentLines: async (documentId) => (await all('lines')).filter((l) => l.documentId === documentId).sort((a, b) => a.no - b.no),

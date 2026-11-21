@@ -9,21 +9,15 @@ import { useAction } from '@/lib/useAction';
 import { DocumentViewer } from './DocumentViewer';
 import { DuplicateDialog } from './DuplicateDialog';
 import { ManualEntryDialog } from './ManualEntryDialog';
-import { UploadCard } from './UploadCard';
 import { DOCUMENT_STATUS, formatDate } from './labels';
 
 const COLUMNS = ['Type', 'Number', 'Date', 'File', 'Status', 'Lines', ''];
-const ORDER_TYPES = [
-  ['pi', 'Proforma invoice'],
-  ['po', 'Purchase order'],
-];
-
 export default function DocumentsTab({ snapshot }) {
   const api = useApi();
   const { actor } = useActor();
   const [run, { busy, error, clear }] = useAction();
   // a new project hands over what went wrong with a file it could not add
-  const [message, setMessage] = useState(useLocation().state?.notice ?? '');
+  const [message] = useState(useLocation().state?.notice ?? '');
   const [viewing, setViewing] = useState(null);
   const [editing, setEditing] = useState(null);
   const [comparing, setComparing] = useState(null);
@@ -31,24 +25,6 @@ export default function DocumentsTab({ snapshot }) {
   const { project, customer, documents, lines } = snapshot;
   const locked = Boolean(project.intake);
   const allowed = can(actor, 'upload');
-
-  const upload = async (file, type) => {
-    setMessage('');
-    const result = await run(() => api.addDocument({ projectId: project.id, type, file, actor }));
-    if (!result) return;
-    const { document, duplicateOf, recognised } = result;
-    if (duplicateOf) return setComparing({ document, existing: duplicateOf });
-    if (document.status === 'needs_manual') {
-      setMessage(`${file.name} is not a known sample, so its lines need to be entered by hand.`);
-      return setEditing(document);
-    }
-    const count = lines.filter((l) => l.documentId === document.id).length;
-    setMessage(
-      recognised
-        ? `${file.name} was recognised. ${document.type === 'prismsuite' ? `${document.recommendations.length} recommendations were read.` : 'The lines were read and classified; review them before confirming.'}`
-        : `${file.name} was added.${count ? '' : ' It is attached for reference.'}`,
-    );
-  };
 
   const doRemove = async () => {
     const ok = await run(async () => {
@@ -98,23 +74,11 @@ export default function DocumentsTab({ snapshot }) {
         </Notice>
       )}
 
-      <div className="upload-grid">
-        <UploadCard title="Order document" hint="Required" types={ORDER_TYPES} disabled={locked || !allowed} busy={busy} onFile={upload} />
-        <UploadCard
-          title="PrismSuite report"
-          hint="Optional"
-          types={[['prismsuite', 'PrismSuite report']]}
-          disabled={!allowed}
-          busy={busy}
-          onFile={upload}
-        />
-      </div>
-
       <Card flush title="Documents" hint={<span className="num">{documents.filter((d) => d.active).length}</span>}>
         <DataTable
           columns={COLUMNS}
           isEmpty={!rows.length}
-          empty="No documents yet. Add the proforma invoice or purchase order above."
+          empty="No documents yet. Documents are added when the project is created."
           className="documents"
         >
           {rows.map((d) => {

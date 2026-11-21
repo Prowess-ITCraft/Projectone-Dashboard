@@ -1,7 +1,8 @@
-import { useId, useRef, useState } from 'react';
-import { DownloadSimpleIcon, UploadSimpleIcon } from '@phosphor-icons/react';
-import { FormField, Icon, Notice, SegmentedControl } from '@/components';
-import { ACCEPT_ATTRIBUTE, fileProblem } from '@/domain/files';
+import { useState } from 'react';
+import { DownloadSimpleIcon } from '@phosphor-icons/react';
+import { Notice } from '@/components';
+import { fileProblem } from '@/domain/files';
+import { UploadCard } from './UploadCard';
 
 const ORDER_TYPES = [
   ['pi', 'Proforma invoice'],
@@ -9,57 +10,35 @@ const ORDER_TYPES = [
 ];
 
 /*
-  How a new project gets its first document: an import from PrismSuite, or an uploaded purchase order or proforma
-  invoice, and optionally an uploaded PrismSuite report. PrismSuite is not connected yet, so its import button only
-  says so; when the integration exists it opens the import here instead. The chosen files are only held here and are
-  added once the project is created.
+  How a new project gets its documents. What is offered depends on the entry path: a post-audit project can import from
+  PrismSuite (not connected yet, so the button only says so), upload the PO/PI and upload the PrismSuite report; new
+  infrastructure and restructuring offer the PO/PI and the PrismSuite report only. Nothing is shown until an entry path
+  is chosen. The chosen files are only held here and are added once the project is created.
   `value` is { order: File|null, orderType: 'pi'|'po', report: File|null }.
 */
-export function StartingDocuments({ value, onChange, disabled = false }) {
-  const id = useId();
-  const orderInput = useRef(null);
-  const reportInput = useRef(null);
+export function StartingDocuments({ entryPath, value, onChange, disabled = false }) {
   const [problem, setProblem] = useState('');
   const [prismNote, setPrismNote] = useState(false);
 
-  const take = (key) => (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  if (!entryPath) return <p className="muted">Choose an entry path to add the documents.</p>;
+
+  const take = (key) => (file, extra) => {
     const why = fileProblem(file);
     setProblem(why ? `${file.name}: ${why}` : '');
-    if (!why) onChange({ ...value, [key]: file });
+    if (!why) onChange({ ...value, [key]: file, ...extra });
   };
 
   return (
-    <div className="start-docs" role="group" aria-label="First document">
-      <div className="action-row">
-        <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => setPrismNote(true)}>
-          <DownloadSimpleIcon size={15} aria-hidden="true" />
-          Import from PrismSuite
-        </button>
-        <small>or</small>
-        <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => orderInput.current?.click()}>
-          <UploadSimpleIcon size={15} aria-hidden="true" />
-          Upload PO/PI
-        </button>
-        <input ref={orderInput} type="file" hidden accept={ACCEPT_ATTRIBUTE} aria-label="PO or PI file" onChange={take('order')} />
-        <span className="upload-option">
-          <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => reportInput.current?.click()}>
-            <UploadSimpleIcon size={15} aria-hidden="true" />
-            Upload PrismSuite report
+    <div className="start-docs" role="group" aria-label="Documents">
+      {entryPath === 'post_audit' && (
+        <div className="action-row">
+          <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => setPrismNote(true)}>
+            <DownloadSimpleIcon size={15} aria-hidden="true" />
+            Import from PrismSuite
           </button>
-          <small>Optional, if a report exists</small>
-        </span>
-        <input
-          ref={reportInput}
-          type="file"
-          hidden
-          accept={ACCEPT_ATTRIBUTE}
-          aria-label="PrismSuite report file"
-          onChange={take('report')}
-        />
-      </div>
+          <small>or upload the documents below</small>
+        </div>
+      )}
       {prismNote && (
         <Notice
           tone="info"
@@ -73,47 +52,27 @@ export function StartingDocuments({ value, onChange, disabled = false }) {
         </Notice>
       )}
       {problem && <Notice tone="error">{problem}</Notice>}
-      {value.report && (
-        <ul className="site-list">
-          <li className="site-item">
-            <div>
-              <b>PrismSuite report</b>
-              <small>{value.report.name}</small>
-            </div>
-            <button type="button" className="btn ghost sm" onClick={() => onChange({ ...value, report: null })}>
-              <Icon name="Trash" size={15} />
-              Remove PrismSuite report
-            </button>
-          </li>
-        </ul>
-      )}
-      {value.order && (
-        <>
-          <ul className="site-list">
-            <li className="site-item">
-              <div>
-                <b>Order document</b>
-                <small>{value.order.name}</small>
-              </div>
-              <button type="button" className="btn ghost sm" onClick={() => onChange({ ...value, order: null })}>
-                <Icon name="Trash" size={15} />
-                Remove order document
-              </button>
-            </li>
-          </ul>
-          <FormField label="The order document is a" group>
-            {(f) => (
-              <SegmentedControl
-                {...f.control}
-                id={`${id}-order-type`}
-                value={value.orderType}
-                options={ORDER_TYPES}
-                onChange={(orderType) => onChange({ ...value, orderType })}
-              />
-            )}
-          </FormField>
-        </>
-      )}
+      <div className="upload-grid">
+        <UploadCard
+          title="Order document"
+          hint="PO/PI"
+          types={ORDER_TYPES}
+          disabled={disabled}
+          value={value.order}
+          onFile={(file, type) => take('order')(file, { orderType: type })}
+          onTypeChange={(orderType) => onChange({ ...value, orderType })}
+          onClear={() => onChange({ ...value, order: null })}
+        />
+        <UploadCard
+          title="PrismSuite report"
+          hint="Optional"
+          types={[['prismsuite', 'PrismSuite report']]}
+          disabled={disabled}
+          value={value.report}
+          onFile={(file) => take('report')(file)}
+          onClear={() => onChange({ ...value, report: null })}
+        />
+      </div>
     </div>
   );
 }

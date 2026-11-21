@@ -62,8 +62,8 @@ describe('App shell on a phone', () => {
     window.__narrow = true;
     renderAt('/dashboard');
     fireEvent.click(await screen.findByRole('button', { name: 'More' }));
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('button', { name: 'Components' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Components' })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('button', { name: 'Implementation services' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Implementation services' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
   });
 });
@@ -74,11 +74,11 @@ describe('project tabs', () => {
     const project = await api.createProject({ customer: { name: 'Tab Customer' }, entryPath: 'post_audit', actor: ADMIN });
     renderApp(<App />, { path: `/projects/${project.id}/documents`, api });
     await screen.findByRole('heading', { level: 1, name: 'Tab Customer' });
+    for (const gone of ['Coverage', 'Modules'])
+      expect(screen.queryByRole('link', { name: new RegExp(`^${gone}`) })).not.toBeInTheDocument();
     for (const [tab, text] of [
-      ['Modules', /Modules are created when the classification is confirmed/],
-      ['Coverage', /No PrismSuite report is attached/],
       ['Order lines', /There are no order lines yet/],
-      ['Overview', /Recent activity/],
+      ['Overview', /Choose a file or drop it here/],
       ['Checklist', new RegExp(NO_STEPS.slice(0, 30))],
     ]) {
       fireEvent.click(screen.getByRole('link', { name: new RegExp(`^${tab}`) }));
@@ -128,7 +128,7 @@ describe('an engineer', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'My work' })).toBeInTheDocument();
     const menu = screen.getByRole('navigation', { name: 'Main' });
     expect(within(menu).getByRole('button', { name: 'My work' })).toBeInTheDocument();
-    for (const name of ['Dashboard', 'Projects', 'Customers', 'Users', 'Components']) {
+    for (const name of ['Dashboard', 'Projects', 'Customers', 'Users', 'Implementation services']) {
       expect(within(menu).queryByRole('button', { name })).not.toBeInTheDocument();
     }
   });

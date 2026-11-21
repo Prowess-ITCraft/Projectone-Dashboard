@@ -19,7 +19,15 @@ export const STORES = [
   'checklist',
 ];
 
-const copy = (value) => (value === undefined || value instanceof Blob ? value : structuredClone(value));
+/* A stored file keeps its Blob as it is: the clone of a record would turn it into a plain object in some environments */
+const copy = (value) => {
+  if (value === undefined || value instanceof Blob) return value;
+  if (value?.blob instanceof Blob) {
+    const { blob, ...rest } = value;
+    return { ...structuredClone(rest), blob };
+  }
+  return structuredClone(value);
+};
 
 export function createMemoryStorage() {
   const data = Object.fromEntries(STORES.map((s) => [s, new Map()]));

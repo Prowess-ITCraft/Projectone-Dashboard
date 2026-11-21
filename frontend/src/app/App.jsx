@@ -29,7 +29,7 @@ import logo from '@/assets/projectone-logo.png';
 
 // Each page is its own file in the build, so the sign-in page and every screen load only what they need
 const Dashboard = lazy(() => import('@/pages/Dashboard.jsx'));
-const Components = lazy(() => import('@/pages/Components.jsx'));
+const ImplementationServices = lazy(() => import('@/pages/ImplementationServices.jsx'));
 const Detail = lazy(() => import('@/pages/Detail.jsx'));
 const Questionnaire = lazy(() => import('@/pages/Questionnaire.jsx'));
 const ProjectsPage = lazy(() => import('@/features/projects/ProjectsPage.jsx'));
@@ -73,14 +73,14 @@ function titleFor(path, catalog) {
   if (path === '/dashboard') return 'Overview';
   if (path === '/my-work') return 'My work';
   if (path === '/users') return 'Users';
-  if (path === '/components') return 'Components';
+  if (path === '/services') return 'Implementation services';
   if (path === '/projects') return 'Projects';
   if (path === '/projects/new') return 'New project';
   if (path.startsWith('/projects/')) return 'Project';
   if (path === '/customers') return 'Customers';
   if (path.startsWith('/customers/')) return 'Customer';
   if (path.startsWith('/q/')) return catalog?.questionnaires[path.split('/')[2]]?.title ?? 'Questionnaire';
-  if (path.startsWith('/c/')) return catalog?.items.find((i) => i.id === path.split('/')[2])?.name ?? 'Component';
+  if (path.startsWith('/services/')) return catalog?.items.find((i) => i.id === path.split('/')[2])?.name ?? 'Implementation service';
   return '';
 }
 
@@ -193,13 +193,13 @@ function Shell() {
             { id: '/dashboard', title: 'Dashboard', hint: 'Overview', icon: SquaresFourIcon },
             { id: '/projects', title: 'Projects', hint: 'List', icon: FolderSimpleIcon },
             { id: '/customers', title: 'Customers', hint: 'List', icon: AddressBookIcon },
-            { id: '/components', title: 'All components', hint: 'List', icon: GridFourIcon },
+            { id: '/services', title: 'Implementation services', hint: 'List', icon: GridFourIcon },
             { id: '/q/server', title: 'Server questionnaire', hint: 'Questionnaire', icon: HardDrivesIcon },
             { id: '/q/firewall', title: 'Firewall questionnaire', hint: 'Questionnaire', icon: WallIcon },
             ...(catalog?.items ?? []).map((i) => ({
-              id: `/c/${i.id}`,
+              id: `/services/${i.id}`,
               title: i.name,
-              hint: i.grp === 'infra' ? 'Network component' : 'Product',
+              hint: 'Implementation service',
               icon: INFRA_ICONS[i.id] || PackageIcon,
             })),
           ],
@@ -305,15 +305,15 @@ function Shell() {
                   }
                 />
                 <Route
-                  path="/components"
+                  path="/services"
                   element={
                     <Allowed need="view_all_projects">
-                      <Components />
+                      <ImplementationServices />
                     </Allowed>
                   }
                 />
                 <Route
-                  path="/c/:id/:mode?"
+                  path="/services/:id/:mode?"
                   element={
                     <Allowed need="view_all_projects">
                       <Detail />

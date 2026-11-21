@@ -660,3 +660,27 @@
     }
   }
 }
+
+/* Lookup table card and the file chosen in an upload card */
+.lookup-file,
+.picked-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.lookup-file small {
+  display: block;
+  color: var(--faint);
+}
+.lookup-table {
+  margin-top: var(--space-16);
+  max-height: 24rem;
+  overflow: auto;
+}
+.picked-file {
+  padding: var(--space-16);
+  border: 1px solid var(--line-2);
+  border-radius: var(--rad-sheet);
+}

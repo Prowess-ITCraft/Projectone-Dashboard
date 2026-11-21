@@ -15,7 +15,7 @@ function Tile({ item, state, name, mode, desc }) {
   const [txt, tone] = SRC[item.src];
   return (
     <motion.div variants={rise}>
-      <Link to={`/c/${item.id}${mode ? '/' + mode : ''}`} className="tile">
+      <Link to={`/services/${item.id}${mode ? '/' + mode : ''}`} className="tile">
         <div className="tile-top">
           <Icon name={item.icon} size={22} className="tile-i" />
           <span className="tile-pct num">{s.pct}%</span>
@@ -37,47 +37,44 @@ function Tile({ item, state, name, mode, desc }) {
   );
 }
 
-export default function Components() {
+export default function ImplementationServices() {
   const data = useChecklist();
-  if (!data.ready) return data.error ? <ErrorState message={data.error} /> : <LoadingState label="Loading the components" />;
-  return <ComponentList data={data} />;
+  if (!data.ready) return data.error ? <ErrorState message={data.error} /> : <LoadingState label="Loading the implementation services" />;
+  return <ServiceList data={data} />;
 }
 
-function ComponentList({ data }) {
-  const { state, items: ITEMS, productList: PRODUCT_LIST } = data;
+function ServiceList({ data }) {
+  const { state, items } = data;
   const [q, setQ] = useState('');
   const match = (s) => s.toLowerCase().includes(q.toLowerCase());
-  const infra = ITEMS.filter((i) => i.grp === 'infra' && (match(i.name) || match(i.desc)));
-  const prods = PRODUCT_LIST.filter((p) => match(p.name));
-  const byId = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
+  const services = items.filter((i) => match(i.name) || match(i.desc));
 
   return (
     <>
-      <PageHead title="Components" sub="Open a component for its installation and configuration checklist.">
+      <PageHead
+        title="Implementation services"
+        sub="The services listed from a purchase order or proforma invoice. Open one for its installation and configuration checklist."
+      >
         <label className="search">
           <Icon name="MagnifyingGlass" size={16} />
-          <input placeholder="Search components" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search components" />
+          <input
+            placeholder="Search services"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Search implementation services"
+          />
         </label>
       </PageHead>
 
       <h2 className="sec">
-        Network components <span className="num">{infra.length}</span>
+        Services <span className="num">{services.length}</span>
       </h2>
-      <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={'i' + q}>
-        {infra.map((i) => (
+      <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={q}>
+        {services.map((i) => (
           <Tile key={i.id} item={i} state={state} name={i.name} />
         ))}
       </motion.div>
-
-      <h2 className="sec">
-        Security and management products <span className="num">{prods.length}</span>
-      </h2>
-      <motion.div className="tiles" variants={stagger} initial="hidden" animate="show" key={'p' + q}>
-        {prods.map((p) => (
-          <Tile key={p.name} item={byId[p.id]} state={state} name={p.name} mode={p.mode} desc={byId[p.id].desc} />
-        ))}
-      </motion.div>
-      {!infra.length && !prods.length && <EmptyState>No components match &quot;{q}&quot;.</EmptyState>}
+      {!services.length && <EmptyState>{q ? `No services match "${q}".` : 'No implementation services yet.'}</EmptyState>}
     </>
   );
 }
