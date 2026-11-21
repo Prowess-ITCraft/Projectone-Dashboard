@@ -3,6 +3,7 @@
 /* Steps for each implementation service. AD/DC is empty for now; its steps come later. */
 const PLAN = {
   'ad-dc': { new: [], existing: [] },
+  dlp: { new: [], existing: [] },
 };
 
 /* The implementation services. More are added here as the owner confirms them. src: 'plan' = steps from the project file */
@@ -16,6 +17,15 @@ const ITEMS = [
     q: 'server',
     src: 'plan',
     desc: 'Active Directory and domain controller: server, users, groups, policies and workstation join.',
+  },
+  {
+    id: 'dlp',
+    grp: 'service',
+    name: 'DLP',
+    cat: 'Data',
+    icon: 'Eye',
+    src: 'plan',
+    desc: 'Data loss prevention across endpoints and mail.',
   },
 ];
 ITEMS.forEach((it) => {
