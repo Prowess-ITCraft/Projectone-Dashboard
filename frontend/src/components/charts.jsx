@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from './Icon';
 
 /* One hue for data (teal), at three intensities for a state machine; grey for nothing yet. */
@@ -53,9 +52,8 @@ export function BarList({ rows }) {
   );
 }
 
-/* Network topology – flat; every node opens its component */
+/* Network topology – flat. The nodes are not clickable yet: there is no content to open. */
 export function Topology({ progress }) {
-  const nav = useNavigate();
   const nodes = [
     { id: 'net', label: 'Internet', x: 50, y: 150, icon: 'Globe' },
     { id: 'firewall', label: 'Firewall', x: 190, y: 150, icon: 'Wall' },
@@ -95,15 +93,11 @@ export function Topology({ progress }) {
         return (
           <motion.g
             key={n.id}
-            className={n.id === 'net' ? 'node static' : 'node'}
+            className="node static"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 * i, duration: 0.35 }}
-            onClick={() => n.id !== 'net' && nav(`/c/${n.id}`)}
-            role={n.id === 'net' ? undefined : 'link'}
-            tabIndex={n.id === 'net' ? undefined : 0}
-            aria-label={`${n.label} checklist`}
-            onKeyDown={(e) => e.key === 'Enter' && n.id !== 'net' && nav(`/c/${n.id}`)}
+            aria-label={n.label}
           >
             <circle cx={n.x} cy={n.y} r="26" className="node-c" />
             <Icon name={n.icon} size={22} x={n.x - 11} y={n.y - 11} className="node-i" />

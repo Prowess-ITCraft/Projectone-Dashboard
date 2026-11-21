@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useChecklist } from '@/data/checklist';
 import { totals, catStats, tasksFor } from '@/domain/checklist';
 import { Card, CountUp, EmptyState, ErrorState, LoadingState, PageHead } from '@/components';
-import { Stacked, BarList, TONE } from '@/components/charts';
+import { Stacked, BarList, Topology, TONE } from '@/components/charts';
 import { ago } from '@/lib/time';
 
 const rise = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } } };
@@ -57,6 +57,10 @@ function Overview({ data }) {
           Open services
         </Link>
       </PageHead>
+
+      <Card as={motion.section} className="topo-card" title="Network topology" variants={rise} initial="hidden" animate="show">
+        <Topology />
+      </Card>
 
       <motion.div className="kpis" variants={stagger} initial="hidden" animate="show">
         {kpis.map((k) => (
