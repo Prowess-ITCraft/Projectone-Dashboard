@@ -1,17 +1,21 @@
 /*
-  End to end against a running API, through the real data layer. Skipped unless E2E_API is set:
-    E2E_API=http://localhost:9666 E2E_ADMIN_EMAIL=... E2E_ADMIN_PASSWORD=...     E2E_CREDS=../backend/engineer-credentials.local.txt npx vitest run src/data/http/e2e.test.js
-  Needs a freshly seeded database (the admin values are those given to the seed script). It changes passwords and
+  End to end against a running API, through the real data layer. Skipped unless every one of these is set:
+    E2E_API              the API address, e.g. http://localhost:9666
+    E2E_ADMIN_EMAIL      the Admin email given to the seed script
+    E2E_ADMIN_PASSWORD   the Admin password given to the seed script
+    E2E_ENGINEER_PASSWORD  the DEFAULT_ENGINEER_PASSWORD given to the seed script
+  For example:
+    E2E_API=http://localhost:9666 E2E_ADMIN_EMAIL=... E2E_ADMIN_PASSWORD=... E2E_ENGINEER_PASSWORD=... npx vitest run src/data/http/e2e.test.js
+  Needs a freshly seeded database. Engineer emails are read from the seeded user list. It changes passwords and
   deactivates engineer01 and engineer02, so run it only against a throwaway database.
 */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { createFixtures } from '@/data/fixtures';
 import { createHttpApi } from './httpApi';
 
 const BASE = process.env.E2E_API;
-const CREDS = process.env.E2E_CREDS;
+const ENGINEER_PASSWORD = process.env.E2E_ENGINEER_PASSWORD;
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
 const fresh = () => `e2e-${crypto.randomUUID()}`;
@@ -35,7 +39,7 @@ function browser() {
 
 const make = () => createHttpApi({ fixtures: createFixtures({ allowPrivate: false }), baseUrl: BASE, fetchImpl: browser() });
 
-describe.skipIf(!BASE || !ADMIN_PASSWORD)('end to end against a running API', () => {
+describe.skipIf(!BASE || !ADMIN_EMAIL || !ADMIN_PASSWORD || !ENGINEER_PASSWORD)('end to end against a running API', () => {
   it('runs the admin and engineer flow on the real server', async () => {
     const admin = make();
     const me = await admin.signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
@@ -60,20 +64,16 @@ describe.skipIf(!BASE || !ADMIN_PASSWORD)('end to end against a running API', ()
     });
 
     const users = await admin.listUsers();
-    const e1 = users.find((u) => u.email === 'engineer01@test.com');
-    const e2 = users.find((u) => u.email === 'engineer02@test.com');
+    const engineers = users.filter((u) => u.role === 'engineer').sort((a, b) => a.email.localeCompare(b.email));
+    const [e1, e2] = engineers;
     await admin.setProjectEngineers(mine.id, [e1.id]);
     expect((await admin.listAssignments()).map((a) => a.engineerId)).toEqual([e1.id]);
 
-    // engineer 01 signs in with the password from the seed file
-    const line = readFileSync(CREDS, 'utf-8')
-      .split('\n')
-      .find((l) => l.includes('engineer01@test.com'));
-    const temp = line.split('\t')[2].trim();
+    // the first engineer signs in with the shared default password
     const engineer = make();
-    await engineer.signIn('engineer01@test.com', temp);
+    await engineer.signIn(e1.email, ENGINEER_PASSWORD);
     const engineerPassword = fresh();
-    const eng = await engineer.changePassword(temp, engineerPassword);
+    const eng = await engineer.changePassword(ENGINEER_PASSWORD, engineerPassword);
     const engActor = { id: eng.id, role: eng.role, name: eng.name };
 
     const projects = await engineer.listMyProjects();
@@ -107,7 +107,7 @@ describe.skipIf(!BASE || !ADMIN_PASSWORD)('end to end against a running API', ()
     await admin.setUserActive(e2.id, false);
     await admin.setUserActive(e1.id, false);
     await expect(engineer.listNotifications()).rejects.toMatchObject({ status: 401 });
-    await expect(make().signIn('engineer01@test.com', engineerPassword)).rejects.toThrow('That email and password do not match.');
+    await expect(make().signIn(e1.email, engineerPassword)).rejects.toThrow('That email and password do not match.');
 
     await admin.signOut();
     expect(await admin.getMe()).toBeNull();

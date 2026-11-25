@@ -15,7 +15,7 @@ Accounts, sessions, assignments and alerts now live in the API (backend ADR 0005
 - **Sign-in page.** Same design. The demo box is a build-time switch: shown only in development and only when `VITE_DEMO_EMAIL` and `VITE_DEMO_PASSWORD` are set in a local env file; a production build contains neither the box nor the settings.
 - **Roles in the screens.** Navigation areas carry `need` or `hideWith` permissions. An Admin starts on the dashboard, an engineer on My work and sees only My work and their projects; Admin pages redirect them home. The server enforces the same rules; the screens only decide what to offer.
 - **New screens.** My work, Users (Admin), an Engineers row with an "Assign engineer" multi-select on the project list and page, the alerts bell (polled every 45 s as background requests), and a read-only Checklist tab per project with the Installation and Configuration groups, the checklist columns, 0 of 0 and the empty-state text until steps are defined.
-- **Tests.** Component tests use the local adapter plus an in-memory stand-in for the server calls (`src/test/fakeServer.js`). `src/data/http/e2e.test.js` drives the real data layer against a running API and is skipped unless `E2E_API` is set.
+- **Tests.** Component tests use the local adapter plus an in-memory stand-in for the server calls (`src/test/fakeServer.js`). `src/data/http/e2e.test.js` drives the real data layer against a running API and is skipped unless `E2E_API`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` and `E2E_ENGINEER_PASSWORD` (the seed's `DEFAULT_ENGINEER_PASSWORD`) are all set.
 - **Build.** Libraries are split into a `vendor` file so the app file stays under the size warning.
 
 ## Consequences

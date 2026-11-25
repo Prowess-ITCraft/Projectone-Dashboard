@@ -41,5 +41,5 @@ desktop.ini
 /docs
 /samples
 
-# Engineer passwords written by backend/scripts/seed_accounts.py, handed out and never committed
+# Local notes that hold credentials or other secrets (the seed script no longer writes any such file); never committed
 *.local.txt
