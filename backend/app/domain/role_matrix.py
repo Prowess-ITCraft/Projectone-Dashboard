@@ -3,9 +3,8 @@
 It mirrors frontend/src/domain/permissions.js. It seeds the role_actions table; after that the database rows are the
 truth and `can()` reads only them. There is deliberately no financial action: Project One holds no financial data.
 
-Owner decision, 17 Nov 2026: an engineer works only on the projects assigned to them, and cannot create projects,
-change the checklist or move a stage (confirmations, entry path, status, delivery). They may add documents and edit
-and classify order lines on their assigned projects.
+Owner decision, 20 Nov 2026: an engineer works only on assigned projects and can complete checklist steps,
+upload evidence and comment. Order lines and project structure are read only to them.
 """
 
 ROLES: dict[str, str] = {"admin": "Admin", "engineer": "Engineer"}
