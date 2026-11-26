@@ -23,19 +23,7 @@ const fail = (message) => {
   server), each write's changes are saved together or not at all; a storage with its own counters numbers customers
   and projects, so two people never get the same number.
 */
-export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
-  const listeners = new Set();
-  let queue = Promise.resolve();
-
-  const write = (fn) => {
-    const run = queue.then(() => (storage.transaction ? storage.transaction(fn) : fn()));
-    queue = run.catch(() => {});
-    return run.then((result) => {
-      listeners.forEach((l) => l());
-      return result;
-    });
-  };
-
+function buildApi({ storage, fixtures, now, listeners, write }) {
   const all = (store) => storage.getAll(store);
   const byProject = async (store, projectId) => (await all(store)).filter((r) => r.projectId === projectId);
 
@@ -1011,5 +999,64 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         await storage.clear();
       }),
   };
+  return api;
+}
+
+/* The methods that write. On a storage with transactions each runs on an API built over its own transaction storage */
+export const WRITE_METHODS = [
+  'updateCustomer',
+  'addSite',
+  'updateSite',
+  'createProject',
+  'updateProject',
+  'setProjectStatus',
+  'addDocument',
+  'saveDocumentDetails',
+  'resolveDuplicate',
+  'removeDocument',
+  'setLookupTable',
+  'removeLookupTable',
+  'updateLine',
+  'addLine',
+  'deleteLine',
+  'rerunRules',
+  'confirmIntake',
+  'reopenIntake',
+  'confirmClassification',
+  'reopenClassification',
+  'setModuleDelivery',
+  'assignService',
+  'setTaskProgress',
+  'addResponse',
+  'patchResponse',
+  'deleteResponse',
+  'loadSampleProjects',
+  'resetAll',
+];
+
+export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
+  const listeners = new Set();
+  let queue = Promise.resolve();
+
+  /* Writes run one at a time so counters and confirmations cannot interleave */
+  const serialise = (job) => {
+    const run = queue.then(job);
+    queue = run.catch(() => {});
+    return run.then((result) => {
+      listeners.forEach((l) => l());
+      return result;
+    });
+  };
+  const build = (over, write) => buildApi({ storage: over, fixtures, now, listeners, write });
+
+  if (!storage.transaction) return build(storage, (fn) => serialise(fn));
+
+  const unbound = () => {
+    throw new Error('A write method is missing from WRITE_METHODS.');
+  };
+  const api = build(storage, unbound);
+  for (const name of WRITE_METHODS) {
+    api[name] = (...args) => serialise(() => storage.transaction((tx) => build(tx, (fn) => fn())[name](...args)));
+  }
   return api;
 }

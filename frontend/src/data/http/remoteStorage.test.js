@@ -21,13 +21,13 @@ describe('remote storage', () => {
   it('sends every write of one action as a single batch when the action ends', async () => {
     const { calls, fetchImpl } = fakeFetch({ 'GET /store/projects': [{ id: 'p1', number: 'PRJ-1' }] });
     const storage = createRemoteStorage(createClient({ fetchImpl }));
-    await storage.transaction(async () => {
-      await storage.put('documents', 'd1', { id: 'd1', projectId: 'p1' });
-      await storage.put('lines', 'l1', { id: 'l1', projectId: 'p1' });
-      await storage.delete('lines', 'l0');
+    await storage.transaction(async (tx) => {
+      await tx.put('documents', 'd1', { id: 'd1', projectId: 'p1' });
+      await tx.put('lines', 'l1', { id: 'l1', projectId: 'p1' });
+      await tx.delete('lines', 'l0');
       // the action reads its own writes before they are sent
-      expect(await storage.get('documents', 'd1')).toEqual({ id: 'd1', projectId: 'p1' });
-      expect((await storage.getAll('projects')).map((p) => p.id)).toEqual(['p1']);
+      expect(await tx.get('documents', 'd1')).toEqual({ id: 'd1', projectId: 'p1' });
+      expect((await tx.getAll('projects')).map((p) => p.id)).toEqual(['p1']);
     });
     const writes = calls.filter((c) => c.method === 'POST');
     expect(writes).toHaveLength(1);
@@ -44,19 +44,69 @@ describe('remote storage', () => {
     const { calls, fetchImpl } = fakeFetch();
     const storage = createRemoteStorage(createClient({ fetchImpl }));
     await expect(
-      storage.transaction(async () => {
-        await storage.put('documents', 'd1', { id: 'd1' });
+      storage.transaction(async (tx) => {
+        await tx.put('documents', 'd1', { id: 'd1' });
         throw new Error('Enter the document number.');
       }),
     ).rejects.toThrow('Enter the document number.');
     expect(calls.filter((c) => c.method === 'POST')).toEqual([]);
   });
 
+  it('keeps staged writes away from reads outside the transaction', async () => {
+    const { calls, fetchImpl } = fakeFetch({ 'GET /store/documents': [{ id: 'd0' }], 'GET /store/documents/d1': 404 });
+    const storage = createRemoteStorage(createClient({ fetchImpl }));
+    let release;
+    const gate = new Promise((resolve) => (release = resolve));
+    const running = storage.transaction(async (tx) => {
+      await tx.put('documents', 'd1', { id: 'd1' });
+      expect((await tx.getAll('documents')).map((d) => d.id)).toEqual(['d0', 'd1']);
+      await gate;
+    });
+    await Promise.resolve();
+    expect(await storage.get('documents', 'd1')).toBeUndefined();
+    expect((await storage.getAll('documents')).map((d) => d.id)).toEqual(['d0']);
+    expect(calls.filter((c) => c.method === 'POST')).toEqual([]);
+    release();
+    await running;
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+  });
+
+  it('gives each overlapping transaction its own writes and commits both', async () => {
+    const { calls, fetchImpl } = fakeFetch({ 'GET /store/documents': [] });
+    const storage = createRemoteStorage(createClient({ fetchImpl }));
+    let releaseA;
+    let releaseB;
+    const gateA = new Promise((resolve) => (releaseA = resolve));
+    const gateB = new Promise((resolve) => (releaseB = resolve));
+    const seen = {};
+    const a = storage.transaction(async (tx) => {
+      await tx.put('documents', 'a', { id: 'a' });
+      await gateA;
+      seen.a = (await tx.getAll('documents')).map((d) => d.id);
+    });
+    const b = storage.transaction(async (tx) => {
+      await tx.put('documents', 'b', { id: 'b' });
+      await gateB;
+      seen.b = (await tx.getAll('documents')).map((d) => d.id);
+    });
+    await Promise.resolve();
+    releaseB();
+    await b;
+    releaseA();
+    await a;
+    expect(seen).toEqual({ a: ['a'], b: ['b'] });
+    const batches = calls.filter((c) => c.method === 'POST').map((c) => c.body.ops);
+    expect(batches).toEqual([
+      [{ op: 'put', store: 'documents', id: 'b', data: { id: 'b' } }],
+      [{ op: 'put', store: 'documents', id: 'a', data: { id: 'a' } }],
+    ]);
+  });
+
   it('reads a record the server does not show as missing, and sends a file as base64', async () => {
     const { calls, fetchImpl } = fakeFetch({ 'GET /store/projects/p9': 404 });
     const storage = createRemoteStorage(createClient({ fetchImpl }));
     expect(await storage.get('projects', 'p9')).toBeUndefined();
-    await storage.transaction(() => storage.put('files', 'f1', { id: 'f1', projectId: 'p1', name: 'a.pdf', blob: new Blob(['%PDF']) }));
+    await storage.transaction((tx) => tx.put('files', 'f1', { id: 'f1', projectId: 'p1', name: 'a.pdf', blob: new Blob(['%PDF']) }));
     const [op] = calls.find((c) => c.path === '/store/batch').body.ops;
     expect(op.data).toEqual({ id: 'f1', projectId: 'p1', name: 'a.pdf', content: btoa('%PDF') });
   });
