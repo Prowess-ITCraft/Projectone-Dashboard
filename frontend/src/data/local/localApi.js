@@ -1,5 +1,5 @@
 import { applyAddRow, applyDeleteRow, applyPatchRow, applyTask, emptyChecklistState } from '@/domain/checklist';
-import { classifyLines, DEFAULT_RULES } from '@/domain/classification';
+import { classifyLines, DEFAULT_RULES, upgradeStoredRules } from '@/domain/classification';
 import { DOCUMENT_TYPES, extractionToDocument } from '@/domain/documents';
 import { ACCEPTED_TEXT, FILE_KINDS, LOOKUP_ACCEPTED_TEXT, LOOKUP_KINDS, MAX_FILE_BYTES, fileKind, lookupKind } from '@/domain/files';
 import { ENTRY_PATHS, lockedByStatus, siteKey, statusChangeProblem, statusOf } from '@/domain/projects';
@@ -40,8 +40,12 @@ function buildApi({ storage, fixtures, now, listeners, write }) {
     await storage.put('audit', id, { id, at: now(), actor: actor ?? null, action, projectId, ...details });
   }
 
-  // The defaults until an Admin stores rules of their own; reading never writes, so anyone may read them
-  const getRules = async () => (await storage.get('rules', 'current')) ?? DEFAULT_RULES;
+  // The defaults until an Admin stores rules of their own; reading never writes, so anyone may read them.
+  // A stored copy from before the XDR rule existed gets that rule added on the way out, without being saved.
+  const getRules = async () => {
+    const stored = await storage.get('rules', 'current');
+    return stored ? upgradeStoredRules(stored) : DEFAULT_RULES;
+  };
 
   // Projects stored before sites and status existed read as in progress with no sites
   const normal = (project) => ({ status: 'in_progress', statusReason: '', siteIds: [], ...project });

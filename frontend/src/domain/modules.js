@@ -23,6 +23,8 @@ export const moduleLabel = (type) => MODULE_TYPES[type]?.label ?? 'Not set';
 export const DEFAULT_MODULE_RULES = [
   { moduleType: 'hosted_dr', patterns: ['phoenyx', 'hosted vm', 'live backup storage'] },
   { moduleType: 'cloud_backup', patterns: ['one drive', 'onedrive', 'cloud back up', 'cloud backup'] },
+  /* Acronis sells XDR too, so this must sit above the backup rule, which would otherwise win on 'acronis' */
+  { moduleType: 'eps', patterns: ['\\bxdr\\b', 'extended detection'] },
   { moduleType: 'backup_software', patterns: ['acronis', 'veeam'] },
   { moduleType: 'eps', patterns: ['intercept x', 'xdr', 'endpoint protection', '\\beps\\b', 'sanitization', 'sanitisation'] },
   { moduleType: 'firewall', patterns: ['sophos xgs', 'fortigate', 'sonicwall', 'firewall'] },
