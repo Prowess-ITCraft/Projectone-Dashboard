@@ -280,7 +280,7 @@ async def test_an_engineer_cannot_change_stages_projects_or_the_checklist(
     assert (await engineer.post("/store/reset")).status_code == 403
 
 
-async def _locked_project(make_client: Clients, database: Database, status: str) -> tuple[httpx.AsyncClient, str, dict]:
+async def _locked_project(make_client: Clients, database: Database, status: str) -> tuple[httpx.AsyncClient, str, dict[str, Any]]:
     await make_user(database, "admin@test.com", "admin")
     admin = await signed_in(make_client, "admin@test.com")
     project_id = await create_project(admin, "PRJ-2627-0001", "Alpha Ltd")
