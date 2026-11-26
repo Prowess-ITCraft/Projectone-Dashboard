@@ -361,7 +361,8 @@ describe('review, classification and modules', () => {
     expect(rules.module.findIndex((r) => r.moduleType === 'eps')).toBeLessThan(
       rules.module.findIndex((r) => r.moduleType === 'backup_software'),
     );
-    expect((await storage.get('rules', 'current')).module).toEqual(rules.module);
+    // Reading never writes: the stored copy stays as it was, one rule short
+    expect((await storage.get('rules', 'current')).module).toHaveLength(rules.module.length - 1);
   });
 
   it('adds and deletes lines, clearing pairings that pointed at a deleted product', async () => {
