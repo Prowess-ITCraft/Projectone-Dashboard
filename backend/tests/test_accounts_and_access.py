@@ -280,6 +280,72 @@ async def test_an_engineer_cannot_change_stages_projects_or_the_checklist(
     assert (await engineer.post("/store/reset")).status_code == 403
 
 
+async def _locked_project(make_client: Clients, database: Database, status: str) -> tuple[httpx.AsyncClient, str, dict]:
+    await make_user(database, "admin@test.com", "admin")
+    admin = await signed_in(make_client, "admin@test.com")
+    project_id = await create_project(admin, "PRJ-2627-0001", "Alpha Ltd")
+    project = (await admin.get(f"/store/projects/{project_id}")).json()
+    locked = {**project, "status": status, "statusReason": "Waiting"}
+    response = await admin.post("/store/batch", json={"ops": [_put_project(project_id, locked)]})
+    assert response.status_code == 204, response.text
+    return admin, project_id, locked
+
+
+def _put_project(project_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    return {"op": "put", "store": "projects", "id": project_id, "data": data}
+
+
+async def test_a_closed_project_cannot_be_edited_through_the_store(make_client: Clients, database: Database) -> None:
+    admin, project_id, closed = await _locked_project(make_client, database, "closed")
+    response = await admin.post("/store/batch", json={"ops": [_put_project(project_id, {**closed, "purpose": "x"})]})
+    assert response.status_code == 409
+    assert response.json()["code"] == "project_locked"
+
+
+async def test_a_closed_project_cannot_be_deleted_through_the_store(make_client: Clients, database: Database) -> None:
+    admin, project_id, _ = await _locked_project(make_client, database, "closed")
+    response = await admin.post("/store/batch", json={"ops": [{"op": "delete", "store": "projects", "id": project_id}]})
+    assert response.status_code == 409
+    assert response.json()["code"] == "project_locked"
+    assert (await admin.get(f"/store/projects/{project_id}")).status_code == 200
+
+
+async def test_an_edit_cannot_ride_along_with_a_status_change(make_client: Clients, database: Database) -> None:
+    admin, project_id, held = await _locked_project(make_client, database, "on_hold")
+    edited = {**held, "status": "in_progress", "statusReason": "", "purpose": "sneaked in"}
+    response = await admin.post("/store/batch", json={"ops": [_put_project(project_id, edited)]})
+    assert response.status_code == 409
+    assert response.json()["code"] == "project_locked"
+    assert (await admin.get(f"/store/projects/{project_id}")).json()["status"] == "on_hold"
+
+
+async def test_a_closed_project_cannot_be_reopened(make_client: Clients, database: Database) -> None:
+    admin, project_id, closed = await _locked_project(make_client, database, "closed")
+    reopened = {**closed, "status": "in_progress", "statusReason": ""}
+    response = await admin.post("/store/batch", json={"ops": [_put_project(project_id, reopened)]})
+    assert response.status_code == 409
+    assert response.json()["code"] == "project_locked"
+    assert (await admin.get(f"/store/projects/{project_id}")).json()["status"] == "closed"
+
+
+async def test_an_admin_can_resume_an_on_hold_project_by_changing_only_its_status(
+    make_client: Clients, database: Database
+) -> None:
+    admin, project_id, held = await _locked_project(make_client, database, "on_hold")
+    resumed = {**held, "status": "in_progress", "statusReason": ""}
+    response = await admin.post("/store/batch", json={"ops": [_put_project(project_id, resumed)]})
+    assert response.status_code == 204, response.text
+    assert (await admin.get(f"/store/projects/{project_id}")).json()["status"] == "in_progress"
+
+
+async def test_a_project_in_progress_can_still_be_edited(make_client: Clients, database: Database) -> None:
+    admin, project_id, _ = await _locked_project(make_client, database, "in_progress")
+    project = (await admin.get(f"/store/projects/{project_id}")).json()
+    response = await admin.post("/store/batch", json={"ops": [_put_project(project_id, {**project, "purpose": "x"})]})
+    assert response.status_code == 204, response.text
+    assert (await admin.get(f"/store/projects/{project_id}")).json()["purpose"] == "x"
+
+
 async def test_a_batch_is_saved_completely_or_not_at_all(make_client: Clients, database: Database) -> None:
     await make_user(database, "admin@test.com", "admin")
     admin = await signed_in(make_client, "admin@test.com")

@@ -294,14 +294,34 @@ class Store:
             for name, value in fields.items():
                 setattr(row, name, value)
 
+    async def _guard_locked_project(self, row: Project, data: dict[str, Any] | None) -> None:
+        """An existing project that is not in progress is read-only, like the local data adapter. A closed project
+        never changes, not even its status. The one exception is an Admin changing the status of any other project
+        (the frontend sends the whole record): only `status` and `statusReason` may differ from what is stored. Any
+        other edit, and every delete (`data` is None), is refused."""
+        if row.status == "in_progress":
+            return
+        if not await self._sees(row.id):
+            raise not_found("That project does not exist.")
+        if row.status != "closed" and data is not None and await can(self.session, self.user, "set_project_status"):
+            status_fields = ("status", "statusReason")
+            old = {k: v for k, v in row.data.items() if k not in status_fields}
+            new = {k: v for k, v in data.items() if k not in status_fields}
+            if old == new:
+                return
+        raise AppError("project_locked", "This project is not in progress, so it cannot be changed.", status=409)
+
     async def _project(self, op: Op) -> None:
         key = parse_uuid(op.id) or self._bad_id()
         row = await self.session.get(Project, key)
         if op.op == "delete":
             if row:
+                await self._guard_locked_project(row, None)
                 await self.session.delete(row)
             return
         data = {**(op.data or {}), "id": op.id}
+        if row is not None:
+            await self._guard_locked_project(row, data)
         fields = {
             "number": _text(data, "number", 20),
             "customer_id": parse_uuid(data.get("customerId")) or self._bad_id(),
