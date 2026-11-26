@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import pi from '@/data/fixtures/pi_sample.json';
 import po from '@/data/fixtures/po_sample.json';
 import prismsuite from '@/data/fixtures/prismsuite_sample.json';
-import { classifyLines, classifyTitle } from './classification';
+import { classifyLines, classifyTitle, DEFAULT_RULES, upgradeStoredRules } from './classification';
 import { coverageCheck } from './coverage';
 import { matchCustomers, normaliseName } from './customers';
 import { extractionToDocument } from './documents';
@@ -89,6 +89,32 @@ describe('classification rules against the sample extractions', () => {
 
   it('marks a line no rule recognises as unknown, which a person must resolve', () => {
     expect(classifyTitle('Annual maintenance retainer')).toMatchObject({ kind: 'unknown', moduleType: null });
+  });
+
+  it('classifies an Acronis XDR line as endpoint protection, not backup software', () => {
+    const title = 'Acronis Extended Detection and Response (XDR), per annum. Workloads: servers, VMs, workstations, hosting servers';
+    expect(classifyTitle(title).moduleType).toBe('eps');
+    expect(classifyTitle('Acronis Cyber Protect XDR licence').moduleType).toBe('eps');
+  });
+
+  it('keeps plain Acronis backup lines as backup software', () => {
+    expect(classifyTitle('Acronis Cyber Protect backup').moduleType).toBe('backup_software');
+    expect(classifyTitle('Veeam Backup & Replication').moduleType).toBe('backup_software');
+  });
+
+  it('adds the XDR rule to a stored copy of the old rules, above backup, and keeps Admin edits', () => {
+    const old = {
+      ...DEFAULT_RULES,
+      module: DEFAULT_RULES.module
+        .filter((r) => !r.patterns.includes('\\bxdr\\b'))
+        .map((r) => (r.moduleType === 'firewall' ? { ...r, patterns: ['edited'] } : r)),
+    };
+    expect(classifyTitle('Acronis XDR per annum', old).moduleType).toBe('backup_software');
+    const upgraded = upgradeStoredRules(old);
+    expect(classifyTitle('Acronis XDR per annum', upgraded).moduleType).toBe('eps');
+    expect(classifyTitle('Acronis Cyber Protect backup', upgraded).moduleType).toBe('backup_software');
+    expect(upgraded.module.find((r) => r.moduleType === 'firewall').patterns).toEqual(['edited']);
+    expect(upgradeStoredRules(upgraded)).toBe(upgraded);
   });
 
   it('keeps a hardware line with a multi-year protection plan a product', () => {

@@ -349,6 +349,21 @@ describe('review, classification and modules', () => {
     expect(after[0].classificationSource).toBe('manual');
   });
 
+  it('adds the XDR rule to rules stored before it existed', async () => {
+    const storage = createMemoryStorage();
+    const legacy = createLocalApi({ storage, fixtures: createFixtures({ allowPrivate: false }), now: () => 1 });
+    const stored = await legacy.getRules();
+    await storage.put('rules', 'current', {
+      ...stored,
+      module: stored.module.filter((r) => !r.patterns.includes('\\bxdr\\b')),
+    });
+    const rules = await legacy.getRules();
+    expect(rules.module.findIndex((r) => r.moduleType === 'eps')).toBeLessThan(
+      rules.module.findIndex((r) => r.moduleType === 'backup_software'),
+    );
+    expect((await storage.get('rules', 'current')).module).toEqual(rules.module);
+  });
+
   it('adds and deletes lines, clearing pairings that pointed at a deleted product', async () => {
     const p = await confirmedSample();
     const { lines, documents } = await api.getProject(p.id);

@@ -58,6 +58,22 @@ export const DEFAULT_KIND_RULES = [
 
 export const DEFAULT_RULES = { kind: DEFAULT_KIND_RULES, module: DEFAULT_MODULE_RULES, brands: DEFAULT_BRANDS };
 
+/*
+  Rules are seeded into storage once, so a copy stored before a default rule was added never sees it. This adds the
+  XDR rule to such a copy, just above the first rule that would otherwise win on 'acronis', and changes nothing else,
+  so rules an Admin edited are kept. Returns the same object when there is nothing to add.
+*/
+const XDR_RULE = DEFAULT_MODULE_RULES.find((r) => r.moduleType === 'eps' && r.patterns.includes('\\bxdr\\b'));
+export function upgradeStoredRules(stored) {
+  const module = stored?.module;
+  if (!Array.isArray(module)) return stored;
+  if (module.some((r) => r.patterns?.includes('\\bxdr\\b'))) return stored;
+  const at = module.findIndex((r) => r.moduleType === 'backup_software');
+  const next = [...module];
+  next.splice(at === -1 ? 0 : at, 0, XDR_RULE);
+  return { ...stored, module: next };
+}
+
 const hits = (patterns, text) => patterns.some((p) => new RegExp(p, 'i').test(text));
 
 /* Kind and module type for one line title. `rule` names the rule that decided, for the audit trail. */
