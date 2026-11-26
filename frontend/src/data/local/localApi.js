@@ -1,7 +1,7 @@
 import { applyAddRow, applyDeleteRow, applyPatchRow, applyTask, emptyChecklistState } from '@/domain/checklist';
 import { classifyLines, DEFAULT_RULES } from '@/domain/classification';
 import { DOCUMENT_TYPES, extractionToDocument } from '@/domain/documents';
-import { ACCEPTED_TEXT, FILE_KINDS, fileKind } from '@/domain/files';
+import { ACCEPTED_TEXT, FILE_KINDS, LOOKUP_ACCEPTED_TEXT, LOOKUP_KINDS, MAX_FILE_BYTES, fileKind, lookupKind } from '@/domain/files';
 import { ENTRY_PATHS, lockedByStatus, siteKey, statusChangeProblem, statusOf } from '@/domain/projects';
 import { financialYear, customerNumber, newId, projectNumber } from '@/domain/ids';
 import { actorLabel, can } from '@/domain/permissions';
@@ -11,8 +11,6 @@ import { isValidGstin, normaliseGstin } from '@/domain/gstin';
 import { isAudited, isValidEmail, matchCustomers } from '@/domain/customers';
 import { sha256Hex } from '@/lib/sha256';
 
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
-
 const fail = (message) => {
   throw new Error(message);
 };
@@ -21,25 +19,16 @@ const fail = (message) => {
   The temporary ProjectOne data layer: every screen reads and writes through this object only. It keeps its data in a
   storage backend (IndexedDB in the browser) and holds the business rules of intake: confirmations, reopening with a
   reason, duplicate documents, module creation. When the backend exists, a second adapter with the same methods replaces it.
-  Writes run one at a time so counters and confirmations cannot interleave.
+  Writes run one at a time so counters and confirmations cannot interleave. On a storage with transactions (the
+  server), each write's changes are saved together or not at all; a storage with its own counters numbers customers
+  and projects, so two people never get the same number.
 */
-export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
-  const listeners = new Set();
-  let queue = Promise.resolve();
-
-  const write = (fn) => {
-    const run = queue.then(fn);
-    queue = run.catch(() => {});
-    return run.then((result) => {
-      listeners.forEach((l) => l());
-      return result;
-    });
-  };
-
+function buildApi({ storage, fixtures, now, listeners, write }) {
   const all = (store) => storage.getAll(store);
   const byProject = async (store, projectId) => (await all(store)).filter((r) => r.projectId === projectId);
 
   async function counter(key) {
+    if (storage.nextCounter) return storage.nextCounter(key);
     const current = (await storage.get('meta', key)) ?? { value: 0 };
     const next = current.value + 1;
     await storage.put('meta', key, { value: next });
@@ -51,12 +40,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     await storage.put('audit', id, { id, at: now(), actor: actor ?? null, action, projectId, ...details });
   }
 
-  async function getRules() {
-    const stored = await storage.get('rules', 'current');
-    if (stored) return stored;
-    await storage.put('rules', 'current', DEFAULT_RULES);
-    return DEFAULT_RULES;
-  }
+  // The defaults until an Admin stores rules of their own; reading never writes, so anyone may read them
+  const getRules = async () => (await storage.get('rules', 'current')) ?? DEFAULT_RULES;
 
   // Projects stored before sites and status existed read as in progress with no sites
   const normal = (project) => ({ status: 'in_progress', statusReason: '', siteIds: [], ...project });
@@ -287,7 +272,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
     await storage.put('meta', 'schema:sites', { at: now() });
   }
 
-  const migrated = write(moveLocationsToSites);
+  // Only browser data from before sites existed needs this; the server never held free-text locations
+  const migrated = storage.remote ? Promise.resolve() : write(moveLocationsToSites);
 
   const api = {
     ready: () => migrated,
@@ -295,6 +281,8 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    /* Something changed outside this layer (an assignment on the server): every open screen reads again */
+    changed: () => listeners.forEach((l) => l()),
     isPersistent: () => storage.persistent !== false,
     getRules,
 
@@ -516,6 +504,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         const fileId = newId();
         await storage.put('files', fileId, {
           id: fileId,
+          projectId,
           name: file.name,
           type: FILE_KINDS[kind].mime,
           size: file.size,
@@ -637,6 +626,47 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
           subject: `${DOCUMENT_TYPES[doc.type]} ${doc.number || doc.fileName}`,
           reason: null,
         });
+      }),
+
+    /* The project's lookup table: one file, kept as supplied. A new upload replaces the earlier one. */
+    setLookupTable: ({ projectId, file, actor }) =>
+      write(async () => {
+        need(actor, 'upload', 'Your role cannot upload the lookup table.');
+        const kind = lookupKind(file);
+        if (!kind) fail(`Only ${LOOKUP_ACCEPTED_TEXT} files can be uploaded.`);
+        if (file.size > MAX_FILE_BYTES) fail('This file is larger than 25 MB.');
+        const project = await requireProject(projectId);
+        requireOpen(project);
+        const bytes = await file.arrayBuffer();
+        const fileId = newId();
+        await storage.put('files', fileId, {
+          id: fileId,
+          projectId,
+          name: file.name,
+          type: LOOKUP_KINDS[kind].mime,
+          size: file.size,
+          hash: await sha256Hex(bytes),
+          blob: new Blob([bytes], { type: LOOKUP_KINDS[kind].mime }),
+        });
+        if (project.lookupTable?.fileId) await storage.delete('files', project.lookupTable.fileId);
+        const lookupTable = { fileId, name: file.name, kind, size: file.size, uploadedAt: now(), uploadedBy: actorLabel(actor) };
+        const next = { ...project, lookupTable };
+        await storage.put('projects', projectId, next);
+        await record(actor, 'lookup_table_added', projectId, { subject: file.name, reason: null });
+        return next;
+      }),
+
+    removeLookupTable: (projectId, { actor }) =>
+      write(async () => {
+        need(actor, 'upload', 'Your role cannot remove the lookup table.');
+        const project = await requireProject(projectId);
+        requireOpen(project);
+        if (!project.lookupTable) return project;
+        if (project.lookupTable.fileId) await storage.delete('files', project.lookupTable.fileId);
+        const { lookupTable, ...rest } = project;
+        await storage.put('projects', projectId, rest);
+        await record(actor, 'lookup_table_removed', projectId, { subject: lookupTable.name, reason: null });
+        return rest;
       }),
 
     getDocumentLines: async (documentId) => (await all('lines')).filter((l) => l.documentId === documentId).sort((a, b) => a.no - b.no),
@@ -820,7 +850,7 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
 
     assignService: (lineId, moduleId, { actor }) =>
       write(async () => {
-        need(actor, 'classify', 'Your role cannot assign services.');
+        need(actor, 'confirm_classification', 'Only an Admin can assign services to modules.');
         const line = await requireLine(lineId);
         requireOpen(await requireProject(line.projectId));
         const module = (await storage.get('modules', moduleId)) ?? fail('That module no longer exists.');
@@ -969,5 +999,64 @@ export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
         await storage.clear();
       }),
   };
+  return api;
+}
+
+/* The methods that write. On a storage with transactions each runs on an API built over its own transaction storage */
+export const WRITE_METHODS = [
+  'updateCustomer',
+  'addSite',
+  'updateSite',
+  'createProject',
+  'updateProject',
+  'setProjectStatus',
+  'addDocument',
+  'saveDocumentDetails',
+  'resolveDuplicate',
+  'removeDocument',
+  'setLookupTable',
+  'removeLookupTable',
+  'updateLine',
+  'addLine',
+  'deleteLine',
+  'rerunRules',
+  'confirmIntake',
+  'reopenIntake',
+  'confirmClassification',
+  'reopenClassification',
+  'setModuleDelivery',
+  'assignService',
+  'setTaskProgress',
+  'addResponse',
+  'patchResponse',
+  'deleteResponse',
+  'loadSampleProjects',
+  'resetAll',
+];
+
+export function createLocalApi({ storage, fixtures, now = () => Date.now() }) {
+  const listeners = new Set();
+  let queue = Promise.resolve();
+
+  /* Writes run one at a time so counters and confirmations cannot interleave */
+  const serialise = (job) => {
+    const run = queue.then(job);
+    queue = run.catch(() => {});
+    return run.then((result) => {
+      listeners.forEach((l) => l());
+      return result;
+    });
+  };
+  const build = (over, write) => buildApi({ storage: over, fixtures, now, listeners, write });
+
+  if (!storage.transaction) return build(storage, (fn) => serialise(fn));
+
+  const unbound = () => {
+    throw new Error('A write method is missing from WRITE_METHODS.');
+  };
+  const api = build(storage, unbound);
+  for (const name of WRITE_METHODS) {
+    api[name] = (...args) => serialise(() => storage.transaction((tx) => build(tx, (fn) => fn())[name](...args)));
+  }
   return api;
 }

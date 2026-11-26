@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useChecklist } from '@/data/checklist';
-import { itemStats, totals, catStats, tasksFor } from '@/domain/checklist';
+import { totals, catStats, tasksFor } from '@/domain/checklist';
 import { Card, CountUp, EmptyState, ErrorState, LoadingState, PageHead } from '@/components';
 import { Stacked, BarList, Topology, TONE } from '@/components/charts';
 import { ago } from '@/lib/time';
@@ -20,8 +20,6 @@ function Overview({ data }) {
   const { state, items: ITEMS } = data;
   const t = useMemo(() => totals(state, ITEMS), [state, ITEMS]);
   const cats = useMemo(() => catStats(state, ITEMS), [state, ITEMS]);
-  const infra = ITEMS.filter((i) => i.grp === 'infra');
-  const progress = Object.fromEntries(infra.map((i) => [i.id, itemStats(state, i).pct]));
   const phases = ['Installation', 'Configuration'].map((ph) => {
     let done = 0,
       total = 0;
@@ -42,11 +40,11 @@ function Overview({ data }) {
   // the next thing to do: the component with work started but not finished, else the first untouched one
   const finding =
     t.done === 0 && t.prog === 0
-      ? 'No task has been ticked yet. Open a component to start its checklist.'
+      ? 'No task has been ticked yet. Open an implementation service to start its checklist.'
       : `${t.done} of ${t.total} tasks completed${t.prog ? `, ${t.prog} in progress` : ''}.`;
 
   const kpis = [
-    { l: 'Components tracked', v: ITEMS.length, note: `${infra.length} network, ${ITEMS.length - infra.length} products` },
+    { l: 'Services tracked', v: ITEMS.length, note: 'implementation services' },
     { l: 'Tasks completed', v: t.done, sfx: ` / ${t.total}`, note: `${t.prog} in progress` },
     { l: 'Overall progress', v: t.pct, sfx: '%', note: 'of all checklist tasks' },
     { l: 'Users in policy tables', v: users, note: `${state.q.firewall.length} firewall, ${state.q.server.length} server` },
@@ -55,21 +53,13 @@ function Overview({ data }) {
   return (
     <>
       <PageHead title="Overview" sub={finding}>
-        <Link to="/components" className="btn">
-          Open components
+        <Link to="/services" className="btn">
+          Open services
         </Link>
       </PageHead>
 
-      <Card
-        as={motion.section}
-        className="topo-card"
-        title="Network topology"
-        hint="Select a node to open its checklist"
-        variants={rise}
-        initial="hidden"
-        animate="show"
-      >
-        <Topology progress={progress} />
+      <Card as={motion.section} className="topo-card" title="Network topology" variants={rise} initial="hidden" animate="show">
+        <Topology />
       </Card>
 
       <motion.div className="kpis" variants={stagger} initial="hidden" animate="show">
@@ -119,9 +109,6 @@ function Overview({ data }) {
       </Card>
 
       <motion.div className="row r-3" variants={stagger} initial="hidden" animate="show">
-        <Card as={motion.section} title="Network components" variants={rise}>
-          <BarList rows={infra.map((i) => ({ label: i.name, pct: progress[i.id] }))} />
-        </Card>
         <Card as={motion.section} title="Progress by pillar" variants={rise}>
           <BarList rows={cats.map((c) => ({ label: c.cat, pct: c.pct }))} />
         </Card>

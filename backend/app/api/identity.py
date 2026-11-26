@@ -1,23 +1,30 @@
 from fastapi import APIRouter
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import CurrentUser, SessionDep
-from app.models import Role
+from app.api.deps import CurrentUser, SessionDep, SignedInUser
+from app.models import Role, User
 from app.schemas.common import MeOut, RoleOut
 from app.services.permissions import actions_for
 
 router = APIRouter(tags=["identity"])
 
 
-@router.get("/me", response_model=MeOut)
-async def me(user: CurrentUser, session: SessionDep) -> MeOut:
+async def me_out(session: AsyncSession, user: User) -> MeOut:
     return MeOut(
         id=str(user.id),
-        username=user.username,
-        display_name=user.display_name,
-        role=user.role_key,
-        actions=await actions_for(session, user.role_key),
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        actions=await actions_for(session, user.role),
+        must_change_password=user.must_change_password,
     )
+
+
+@router.get("/me", response_model=MeOut)
+async def me(user: SignedInUser, session: SessionDep) -> MeOut:
+    """Answers even while a new password is still to be chosen, so the screen knows to ask for one."""
+    return await me_out(session, user)
 
 
 @router.get("/roles", response_model=list[RoleOut])

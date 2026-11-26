@@ -32,10 +32,10 @@ export function SitePicker({ sites = [], selected, onSelected, drafts, onDrafts,
       {drafts.map((d, i) => (
         <div key={d.key} className="site-draft">
           <div className="form-grid">
-            <FormField label={`New site ${i + 1} name`}>
+            <FormField label={`New branch ${i + 1} name`}>
               {(f) => <input {...f.control} className="input" value={d.name} onChange={(e) => setDraft(d.key, { name: e.target.value })} />}
             </FormField>
-            <FormField label={`New site ${i + 1} address`}>
+            <FormField label={`New branch ${i + 1} address`}>
               {(f) => (
                 <input {...f.control} className="input" value={d.address} onChange={(e) => setDraft(d.key, { address: e.target.value })} />
               )}
@@ -43,13 +43,13 @@ export function SitePicker({ sites = [], selected, onSelected, drafts, onDrafts,
           </div>
           <button type="button" className="btn ghost sm" onClick={() => onDrafts(drafts.filter((x) => x.key !== d.key))}>
             <Icon name="Trash" size={15} />
-            Remove new site {i + 1}
+            Remove new branch {i + 1}
           </button>
         </div>
       ))}
       <button type="button" className="btn ghost sm" onClick={() => onDrafts([...drafts, newSiteDraft()])}>
         <Icon name="Plus" size={15} />
-        Add a new site
+        Add a new branch
       </button>
       {!sites.length && !drafts.length && <p className="muted">No site yet. You can add sites now or later.</p>}
     </fieldset>

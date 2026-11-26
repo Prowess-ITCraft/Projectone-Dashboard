@@ -5,11 +5,12 @@ import { currentStage } from '@/domain/stages';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { NARROW_QUERY } from '@/app/navigation';
 import { PrismSuiteBadge } from '@/features/customers/PrismSuiteBadge';
+import { ProjectEngineers } from './AssignEngineers';
 import { formatTimestamp } from './labels';
 
-const COLUMNS = ['Project', 'Customer', 'Sites', 'Entry path', 'Stage', 'Status', 'Last activity'];
+const COLUMNS = ['Project', 'Customer', 'Sites', 'Entry path', 'Stage', 'Status', 'Engineers', 'Last activity'];
 
-function StageCell({ tracker }) {
+export function StageCell({ tracker }) {
   const stage = currentStage(tracker);
   const done = tracker.every((s) => s.state === 'done');
   return (
@@ -36,8 +37,20 @@ function StatusCell({ project }) {
 
 const siteNames = (sites) => sites.map((s) => s.name).join(', ');
 
-/* The projects as a table on wide screens and as stacked cards on phones, with the same fields */
-export function ProjectList({ rows, empty }) {
+/*
+  The projects as a table on wide screens and as stacked cards on phones, with the same fields. `team` (from
+  useEngineers) gives each project's engineers and, for an Admin, the engineers to assign.
+*/
+export function ProjectList({ rows, empty, team }) {
+  const engineersOf = (project, customer) => (
+    <ProjectEngineers
+      project={project}
+      customerName={customer?.name}
+      assigned={team?.byProject.get(project.id) ?? []}
+      engineers={team?.engineers ?? []}
+      compact
+    />
+  );
   const narrow = useMediaQuery(NARROW_QUERY);
 
   if (narrow) {
@@ -64,6 +77,8 @@ export function ProjectList({ rows, empty }) {
               <dd>
                 <StageCell tracker={tracker} />
               </dd>
+              <dt>Engineers</dt>
+              <dd>{engineersOf(project, customer)}</dd>
               <dt>Last activity</dt>
               <dd>{formatTimestamp(lastActivityAt)}</dd>
             </dl>
@@ -93,6 +108,7 @@ export function ProjectList({ rows, empty }) {
           <td>
             <StatusCell project={project} />
           </td>
+          <td>{engineersOf(project, customer)}</td>
           <td>{formatTimestamp(lastActivityAt)}</td>
         </tr>
       ))}

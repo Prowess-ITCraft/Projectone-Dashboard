@@ -15,7 +15,12 @@
 - [x] Stage 4: customers list and page, sites (several per project), project status with Admin-only changes and reasons, PrismSuite badge, projects list with new columns, filters, sort and phone cards (ADR 0013)
 - [x] Production readiness pass on Stage 4: project creation saves nothing when any check fails, contact emails are checked, lists read every store once (200 projects: 5.5 s to 0.13 s), long names wrap, pages load as separate files (no 500 kB warning); tested on the dev server and the production build
 
+- [x] Accounts and assignments (owner prompt, 17 Nov 2026): real sign-in, new-password page, My work, Users page, Assign engineer, alerts bell, empty per-project checklist, data saved on the server (ADR 0014)
+
 ## Waiting on the owner
+
+- [ ] Review the accounts screens in a browser (sign-in, new password, My work, Users, assign, bell, checklist) at 1440, 860 and 360 px in both themes (not checked by the builder)
+- [ ] Host rewrite of `/api` to the backend once it is hosted
 
 - [ ] Push `feature/stage-1-foundation` (Stages 1 and 2; all stages share this branch) and open the pull request; change the Vercel root directory to `frontend/` when it merges
 - [ ] Review the sign-in page in a browser at desktop and phone width in both themes (not checked by the builder)

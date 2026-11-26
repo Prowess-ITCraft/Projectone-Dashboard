@@ -9,6 +9,7 @@ import { ENTRY_PATHS } from '@/domain/projects';
 import { can } from '@/domain/permissions';
 import { useAction } from '@/lib/useAction';
 import { SitePicker } from './SitePicker';
+import { StartingDocuments } from './StartingDocuments';
 
 const EMPTY = { name: '', gstin: '', address: '', contact: '', email: '' };
 
@@ -21,7 +22,7 @@ export default function NewProjectPage() {
   const [chosen, setChosen] = useState(null);
   const [matches, setMatches] = useState([]);
   const [entryPath, setEntryPath] = useState('');
-  const [purpose, setPurpose] = useState('');
+  const [docs, setDocs] = useState({ order: null, orderType: 'pi', report: null });
   const [siteIds, setSiteIds] = useState([]);
   const [siteDrafts, setSiteDrafts] = useState([]);
   const [touched, setTouched] = useState(false);
@@ -59,17 +60,30 @@ export default function NewProjectPage() {
     e.preventDefault();
     setTouched(true);
     if (invalid) return;
-    const project = await run(() =>
-      api.createProject({
+    const result = await run(async () => {
+      const project = await api.createProject({
         customer: chosen ? { id: chosen.id } : customer,
         entryPath,
-        purpose,
         siteIds: chosen ? siteIds : [],
         newSites: siteDrafts,
         actor,
-      }),
-    );
-    if (project) nav(`/projects/${project.id}/documents`);
+      });
+      // the project exists from here on, so a file that cannot be added is reported on its documents page
+      const notices = [];
+      for (const [file, type] of [
+        [docs.order, docs.orderType],
+        [docs.report, 'prismsuite'],
+      ]) {
+        if (!file) continue;
+        try {
+          await api.addDocument({ projectId: project.id, type, file, actor });
+        } catch (e) {
+          notices.push(`${file.name} could not be added: ${e instanceof Error ? e.message : 'Something went wrong.'}`);
+        }
+      }
+      return { project, notice: notices.join(' ') };
+    });
+    if (result) nav(`/projects/${result.project.id}/documents`, { state: result.notice ? { notice: result.notice } : undefined });
   };
 
   if (!can(actor, 'create_project')) {
@@ -82,7 +96,7 @@ export default function NewProjectPage() {
         <Icon name="ArrowLeft" size={14} />
         All projects
       </Link>
-      <PageHead title="New project" sub="Name the customer and how the work came about. You add the order documents next." />
+      <PageHead title="New project" sub="Name the customer and how the work came about. You add the documents here too." />
 
       <form onSubmit={submit} noValidate className="stack">
         <Card title="Customer">
@@ -139,7 +153,7 @@ export default function NewProjectPage() {
           )}
         </Card>
 
-        <Card title="Project">
+        <Card title="Project" className="project-card">
           <FormField
             label="Entry path"
             group
@@ -156,13 +170,7 @@ export default function NewProjectPage() {
               />
             )}
           </FormField>
-          <div className="form-grid">
-            <FormField label="Purpose" hint="Why the customer ordered this, in a sentence.">
-              {(f) => (
-                <textarea {...f.control} className="input textarea" rows={3} value={purpose} onChange={(e) => setPurpose(e.target.value)} />
-              )}
-            </FormField>
-          </div>
+          <StartingDocuments entryPath={entryPath} value={docs} onChange={setDocs} disabled={busy || !can(actor, 'upload')} />
           <SitePicker
             legend="Sites this project covers"
             sites={customerSites}

@@ -30,6 +30,7 @@ import {
   UsersIcon,
   WallIcon,
   WifiHighIcon,
+  XIcon,
 } from '@phosphor-icons/react';
 
 // Data files name icons as strings; this map turns a name into a component.
@@ -65,6 +66,7 @@ const MAP = {
   Users: UsersIcon,
   Wall: WallIcon,
   WifiHigh: WifiHighIcon,
+  X: XIcon,
 };
 
 export function Icon({ name, size = 18, weight = 'regular', className = '', ...rest }) {

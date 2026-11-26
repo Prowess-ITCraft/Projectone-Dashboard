@@ -10,7 +10,8 @@ services:
     environment:
       # bind mounts from Windows and macOS hosts do not deliver file events, so the watcher polls
       CHOKIDAR_USEPOLLING: 'true'
-      VITE_API_URL: http://localhost:9666
+      # the dev server forwards /api to the api service, so the session cookie stays on the app's own address
+      API_PROXY_TARGET: http://api:9666
     volumes:
       - ./frontend:/app
       # container keeps its own Linux node_modules instead of the host's
@@ -24,6 +25,8 @@ services:
       ENVIRONMENT: development
       DATABASE_URL: postgresql+asyncpg://projectone:projectone@postgres:5432/projectone
       CORS_ORIGINS: http://localhost:9555
+      # the engineers' starting password; set it in your shell or an untracked .env next to this file, never in git
+      DEFAULT_ENGINEER_PASSWORD: ${DEFAULT_ENGINEER_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -11,6 +11,7 @@ import { useAction } from '@/lib/useAction';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { NARROW_QUERY } from '@/app/navigation';
 import { ProjectList } from './ProjectList';
+import { useEngineers } from './useEngineers';
 
 function Select({ label, value, onChange, children }) {
   return (
@@ -27,6 +28,7 @@ export default function ProjectsPage() {
   const api = useApi();
   const { actor } = useActor();
   const { data, error, loading, reload } = useApiQuery((a) => a.listProjects());
+  const team = useEngineers();
   const [filters, setFilters] = useState({ query: '', entryPath: ALL, stage: ALL, status: ALL, customerId: ALL });
   const [sort, setSort] = useState('activity');
   const [confirmReset, setConfirmReset] = useState(false);
@@ -133,6 +135,7 @@ export default function ProjectsPage() {
 
       <Card flush title="All projects" hint={<span className="num">{rows.length}</span>}>
         <ProjectList
+          team={team}
           rows={rows}
           empty={data.length ? 'No project matches the filters.' : 'No projects yet. Create one to start with a customer order.'}
         />

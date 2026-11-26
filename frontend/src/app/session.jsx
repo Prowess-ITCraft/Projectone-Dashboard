@@ -1,67 +1,94 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { useActor } from './actor';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useApi } from '@/data/api';
 
 /*
-  Demo sign-in until real accounts exist (backend stage B10). The one demo account is checked in the browser, so this
-  is a gate for trying the app, not security: anything shipped to a browser can be read. It signs in as an Admin and
-  stays signed in until Sign out. The acting-as switch in the top bar remains a development tool.
+  Who is signed in. The session itself is an httpOnly cookie set by the API, so nothing secret is kept in the browser's
+  storage; on start the screen asks the API who the cookie belongs to. The API ends a session after a period without
+  activity: the next request then reports it, the person returns to the sign-in page, and `ended` says why.
+  A person given a temporary password has `mustChangePassword` until they choose their own.
+
+  The demo account below is shown on the sign-in page in local development only, and only when its email and password
+  are set in the frontend's local env file (never committed). A production build never contains it.
 */
-export const DEMO_ACCOUNT = { email: 'adi@test.com', password: 'test1234', name: 'Adi', role: 'admin' };
-
-const KEY = 'projectone.session';
-
-/* The signed-in person for a matching email and password, else null. Email ignores case and spaces. */
-export function checkDemoCredentials(email, password) {
-  const sameEmail =
-    String(email ?? '')
-      .trim()
-      .toLowerCase() === DEMO_ACCOUNT.email;
-  if (!sameEmail || password !== DEMO_ACCOUNT.password) return null;
-  return { email: DEMO_ACCOUNT.email, name: DEMO_ACCOUNT.name, role: DEMO_ACCOUNT.role };
+export function demoAccount(env = import.meta.env) {
+  if (!env.DEV || !env.VITE_DEMO_EMAIL || !env.VITE_DEMO_PASSWORD) return null;
+  return { email: env.VITE_DEMO_EMAIL, password: env.VITE_DEMO_PASSWORD };
 }
 
-function load() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(KEY));
-    if (stored?.email === DEMO_ACCOUNT.email) return stored;
-  } catch {
-    // unreadable or blocked storage means signed out
-  }
-  return null;
-}
+const ENDED = {
+  session_expired: 'Your session ended after a period without activity. Sign in again.',
+  not_signed_in: 'Sign in to continue.',
+};
 
 const SessionContext = createContext(null);
 
 export function SessionProvider({ children, initial }) {
-  const { setActor } = useActor();
-  const [session, setSession] = useState(initial === undefined ? load : initial);
+  const api = useApi();
+  const [session, setSession] = useState(initial === undefined ? null : initial);
+  const [loading, setLoading] = useState(initial === undefined);
+  const [ended, setEnded] = useState('');
+
+  useEffect(() => {
+    if (initial !== undefined) return undefined;
+    let current = true;
+    api.getMe().then(
+      (me) => {
+        if (!current) return;
+        setSession(me);
+        setLoading(false);
+      },
+      () => {
+        if (!current) return;
+        setSession(null);
+        setLoading(false);
+      },
+    );
+    return () => {
+      current = false;
+    };
+    // only on start: later changes arrive through sign-in, sign-out and onAuthProblem
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
+
+  useEffect(
+    () =>
+      api.onAuthProblem?.((error) => {
+        if (error.code === 'password_change_required') {
+          setSession((s) => s && { ...s, mustChangePassword: true });
+          return;
+        }
+        setSession(null);
+        setEnded(ENDED[error.code] ?? ENDED.not_signed_in);
+      }),
+    [api],
+  );
 
   const value = useMemo(
     () => ({
       session,
-      signIn: (email, password) => {
-        const person = checkDemoCredentials(email, password);
-        if (!person) return false;
-        const next = { ...person, signedInAt: Date.now() };
-        setSession(next);
-        setActor({ role: person.role, name: person.name });
-        try {
-          localStorage.setItem(KEY, JSON.stringify(next));
-        } catch {
-          // the sign-in still holds for this visit
-        }
-        return true;
+      loading,
+      ended,
+      signIn: async (email, password) => {
+        const me = await api.signIn(email.trim(), password);
+        setEnded('');
+        setSession(me);
+        return me;
       },
-      signOut: () => {
-        setSession(null);
+      signOut: async () => {
         try {
-          localStorage.removeItem(KEY);
-        } catch {
-          // nothing stored to remove
+          await api.signOut();
+        } finally {
+          setEnded('');
+          setSession(null);
         }
+      },
+      changePassword: async (current, next) => {
+        const me = await api.changePassword(current, next);
+        setSession(me);
+        return me;
       },
     }),
-    [session, setActor],
+    [api, session, loading, ended],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -29,7 +29,7 @@ export function DocumentViewer({ fileId, title, className = '' }) {
   }
   if (!state.url) return <p className="viewer-empty">Opening the file.</p>;
   if (!state.pdf) {
-    // Word and Excel files cannot be drawn in the page, so they open in their own program
+    // Word files cannot be drawn in the page, so they open in their own program
     return (
       <p className="viewer-empty">
         {state.name} is not a PDF and cannot be shown here.{' '}

@@ -1,0 +1,438 @@
+/* Accounts and assignments: the alerts bell, engineer chips and the assign dialog. Built only from the theme tokens. */
+@layer base {
+  /* alerts bell */
+  .bell {
+    position: relative;
+  }
+  .bell-btn {
+    position: relative;
+  }
+  .bell-count {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    min-width: 17px;
+    padding: 0 var(--space-4);
+    border-radius: var(--rad-full);
+    background: var(--lime);
+    color: var(--on-lime);
+    font-size: var(--fs-nano);
+    font-weight: var(--fw-semibold);
+    line-height: 17px;
+    text-align: center;
+  }
+  .bell-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--space-8));
+    z-index: var(--z-dialog);
+    width: min(360px, calc(100vw - var(--space-34)));
+    padding: var(--space-12);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--rad-card);
+    background: var(--card-solid);
+    box-shadow: var(--shadow-dialog);
+  }
+  .bell-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-12);
+    padding: var(--space-4) var(--space-4) var(--space-10);
+    color: var(--ink);
+  }
+  .bell-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-4);
+    max-height: min(420px, 60vh);
+    overflow-y: auto;
+  }
+  .bell-item {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-8) var(--space-10);
+    border: 0;
+    border-radius: var(--rad-md);
+    background: none;
+    color: var(--mut);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .bell-item:hover,
+  .bell-item:focus-visible {
+    background: var(--hover);
+  }
+  .bell-item.unread {
+    background: var(--tint);
+    color: var(--ink);
+  }
+  .bell-item.unread .bell-msg {
+    font-weight: var(--fw-medium);
+  }
+  .bell-item small {
+    color: var(--faint);
+    font-size: var(--fs-small);
+  }
+  .bell-empty {
+    margin: 0;
+    padding: var(--space-8) var(--space-4);
+  }
+
+  /* engineers on a project */
+  .engineers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  .engineers .notice {
+    flex: 1 1 100%;
+  }
+  .engineer-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+  }
+  .engineer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-6) var(--space-2) var(--space-10);
+    border: 1px solid var(--line-2);
+    border-radius: var(--rad-full);
+    color: var(--text);
+    font-size: var(--fs-small);
+    white-space: nowrap;
+  }
+  .engineer-remove {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: var(--rad-full);
+    background: none;
+    color: var(--mut);
+    cursor: pointer;
+  }
+  .engineer-remove:hover {
+    background: var(--active);
+    color: var(--ink);
+  }
+  .engineers > .btn.sm {
+    margin-left: 0;
+  }
+  .assign-dialog {
+    display: grid;
+    gap: var(--space-12);
+  }
+  .assign-dialog .input {
+    width: 100%;
+  }
+  .assign-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-6);
+    max-height: min(320px, 50vh);
+    overflow-y: auto;
+  }
+  .assign-list .strong small {
+    font-weight: normal;
+  }
+  .project-team {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-12);
+    margin: 0 0 var(--space-16);
+  }
+  .project-team-label {
+    color: var(--mut);
+    font-size: var(--fs-label);
+  }
+
+  /* users */
+  .temp-password {
+    padding: var(--space-2) var(--space-6);
+    border-radius: var(--rad-xs);
+    background: var(--sheet);
+    color: var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    user-select: all;
+  }
+
+  /* profile badge and menu, top right */
+  .profile {
+    position: relative;
+  }
+  .profile-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    height: 34px;
+    padding: 0 var(--space-10) 0 var(--space-4);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--rad-full);
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: var(--rim), var(--shadow);
+    cursor: pointer;
+  }
+  .profile-btn:hover {
+    border-color: var(--faint);
+  }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--rad-full);
+    background: var(--pill);
+    color: var(--pill-fg);
+    font-size: var(--fs-tag);
+    font-weight: var(--fw-semibold);
+  }
+  .profile-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--fs-label);
+  }
+  .profile-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--space-8));
+    z-index: var(--z-dialog);
+    display: grid;
+    gap: var(--space-2);
+    width: min(280px, calc(100vw - var(--space-34)));
+    padding: var(--space-8);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--rad-card);
+    background: var(--card-solid);
+    box-shadow: var(--shadow-dialog);
+  }
+  .profile-who {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-8) var(--space-10) var(--space-10);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--line);
+    overflow-wrap: anywhere;
+  }
+  .profile-who span,
+  .profile-who small {
+    color: var(--mut);
+  }
+  .profile-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-10);
+    width: 100%;
+    padding: var(--space-8) var(--space-10);
+    border: 0;
+    border-radius: var(--rad-sm);
+    background: none;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+  }
+  .profile-item:hover,
+  .profile-item:focus-visible {
+    background: var(--hover);
+  }
+
+  @media (max-width: 860px) {
+    .bell-panel {
+      position: fixed;
+      left: var(--space-16);
+      right: var(--space-16);
+      top: calc(var(--topbar-h) + var(--space-8));
+      width: auto;
+    }
+  }
+  @media (max-width: 520px) {
+    .profile-name {
+      display: none;
+    }
+    .profile-btn {
+      padding-right: var(--space-8);
+    }
+  }
+}
+
+/* My work: each project is one full-width row that is a single link */
+@layer base {
+  .work-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-8);
+  }
+  .work-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-16);
+    width: 100%;
+    padding: var(--space-14) var(--space-20);
+    border: 1px solid var(--line);
+    border-radius: var(--rad-card);
+    background: var(--card-solid);
+    color: var(--ink);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+  .work-row:hover {
+    background: var(--hover);
+    border-color: var(--line-2);
+  }
+  .work-row:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    background: var(--hover);
+    border-color: var(--line-2);
+  }
+  .work-row-main,
+  .work-row-meta {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+  .work-row-customer,
+  .work-row-meta small {
+    color: var(--mut);
+  }
+  .work-row-go {
+    color: var(--faint);
+  }
+  .work-row:hover .work-row-go,
+  .work-row:focus-visible .work-row-go {
+    color: var(--ink);
+  }
+  .work-empty {
+    padding: var(--space-20) 0;
+  }
+  @media (max-width: 860px) {
+    .work-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .work-row-meta {
+      grid-column: 1;
+    }
+    .work-row-go {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+  }
+
+  /* checklist steps: Complete is green (the success colour), Awaiting evidence amber, Pending neutral, locked dimmed */
+  .check tr.step-complete td {
+    background: var(--pos-bg);
+  }
+  .check tr.step-awaiting-evidence td {
+    background: var(--warn-bg);
+  }
+  .check tr.step.locked td {
+    opacity: 0.55;
+  }
+  .step-check {
+    color: var(--pos);
+  }
+  .check .lock-note {
+    display: block;
+    margin-top: var(--space-4);
+    color: var(--mut);
+    font-weight: normal;
+  }
+  .check tr.step-detail > td {
+    padding: var(--space-12) var(--space-20) var(--space-16);
+    border-top: 0;
+  }
+  .step-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-20);
+  }
+  .step-panels h4 {
+    margin: 0 0 var(--space-8);
+    font-size: var(--fs-label);
+    color: var(--mut);
+  }
+  .ev-list,
+  .cm-list {
+    list-style: none;
+    margin: 0 0 var(--space-12);
+    padding: 0;
+    display: grid;
+    gap: var(--space-8);
+  }
+  .ev-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8) var(--space-12);
+  }
+  .ev-open {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--rad-sm);
+    background: var(--card-solid);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .ev-thumb {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: var(--rad-sm);
+  }
+  .ev-icon {
+    color: var(--mut);
+  }
+  .ev-by,
+  .cm-list small {
+    color: var(--mut);
+  }
+  .ev-add {
+    display: grid;
+    gap: var(--space-8);
+  }
+  .cm-list li {
+    padding: var(--space-8) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--rad-sm);
+    background: var(--card-solid);
+  }
+  .cm-list p {
+    margin: 0 0 var(--space-4);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .cm-add {
+    display: grid;
+    gap: var(--space-8);
+  }
+  .cm-add textarea {
+    width: 100%;
+    resize: vertical;
+  }
+}

@@ -155,11 +155,17 @@ async def test_the_migrations_describe_exactly_the_models(admin_url: str) -> Non
 
 
 def test_the_frozen_matrix_in_the_migration_equals_the_application_matrix() -> None:
-    path = Path(BACKEND) / "migrations" / "versions" / "0002_identity_audit_counters.py"
-    spec = importlib.util.spec_from_file_location("migration_0002", path)
+    path = Path(BACKEND) / "migrations" / "versions" / "0003_accounts_projects_assignments.py"
+    spec = importlib.util.spec_from_file_location("migration_0003", path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.ROLES == role_matrix.ROLES
-    assert tuple(module.ENGINEER) == role_matrix.ENGINEER_ACTIONS
-    assert tuple(module.ADMIN) == role_matrix.ADMIN_ACTIONS
+    # 0003 froze the matrix as it was then; 0005 (20 Nov 2026) replaced the engineer's actions and added one for Admin
+    later = Path(BACKEND) / "migrations" / "versions" / "0005_engineer_checklist.py"
+    spec5 = importlib.util.spec_from_file_location("migration_0005", later)
+    assert spec5 and spec5.loader
+    module5 = importlib.util.module_from_spec(spec5)
+    spec5.loader.exec_module(module5)
+    assert tuple(module5.NEW_ENGINEER) == role_matrix.ENGINEER_ACTIONS
+    assert set(module.ADMIN) | {"manage_checklist"} == set(role_matrix.ADMIN_ACTIONS)

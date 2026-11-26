@@ -40,3 +40,6 @@ desktop.ini
 # Private context pack and customer sample documents (kept local; engineering docs live in frontend/docs)
 /docs
 /samples
+
+# Local notes that hold credentials or other secrets (the seed script no longer writes any such file); never committed
+*.local.txt
